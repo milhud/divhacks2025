@@ -1,315 +1,199 @@
-# Vibe Coach Backend - Setup Guide
+# Vibe Coach - Backend Setup Guide
 
-This guide will walk you through setting up the Vibe Coach backend API step by step.
+This guide will help you set up the complete backend infrastructure for the Vibe Coach AI fitness assistant.
 
-## 🚀 Quick Start
+## Prerequisites
 
-### 1. Prerequisites
+- Node.js 18+ installed
+- A Supabase account
+- An OpenAI API key
+- Git installed
 
-Before you begin, ensure you have:
+## 1. Environment Setup
 
-- **Node.js 18+** installed
-- **Git** installed
-- **Docker** installed (for containerization)
-- **Google Cloud CLI** installed (for deployment)
-- Access to the following services:
-  - Supabase account
-  - OpenAI API key
-  - ElevenLabs API key
-  - Google Cloud Platform account
+1. Copy the environment template:
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-### 2. Clone and Install
+2. Fill in your environment variables in `.env.local`:
 
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd vibe-coach-backend
+### Supabase Setup
 
-# Install dependencies
-npm install
-```
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. In your Supabase dashboard:
+   - Go to Settings > API
+   - Copy your Project URL and paste it as `NEXT_PUBLIC_SUPABASE_URL`
+   - Copy your anon/public key and paste it as `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Copy your service_role key and paste it as `SUPABASE_SERVICE_ROLE_KEY`
 
-### 3. Environment Setup
+### OpenAI Setup
 
-```bash
-# Copy the environment template
-cp env.example .env.local
-
-# Edit the environment file
-nano .env.local  # or use your preferred editor
-```
-
-Fill in your environment variables:
-
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-# OpenAI Configuration
-OPENAI_API_KEY=sk-your_openai_api_key
-
-# ElevenLabs Configuration
-ELEVENLABS_API_KEY=your_elevenlabs_api_key
-
-# Google Cloud Configuration (for deployment)
-GOOGLE_CLOUD_PROJECT_ID=your-project-id
-GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
-
-# Application Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NODE_ENV=development
-
-# CORS Configuration
-ALLOWED_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
-```
-
-### 4. Database Setup
-
-1. **Create a Supabase Project**:
-   - Go to [supabase.com](https://supabase.com)
-   - Create a new project
-   - Note down your project URL and API keys
-
-2. **Set up the Database Schema**:
-   - Go to your Supabase dashboard
-   - Navigate to the SQL Editor
-   - Copy and paste the contents of `supabase/schema.sql`
-   - Run the SQL script to create all tables and policies
-
-3. **Verify Database Setup**:
-   - Check that all tables are created
-   - Verify Row Level Security (RLS) is enabled
-   - Test the connection
-
-### 5. API Keys Setup
-
-#### OpenAI API Key
 1. Go to [platform.openai.com](https://platform.openai.com)
-2. Create an account or sign in
-3. Navigate to API Keys section
-4. Create a new API key
-5. Copy the key to your `.env.local`
+2. Create an API key
+3. Copy the key and paste it as `OPENAI_API_KEY`
 
-#### ElevenLabs API Key
-1. Go to [elevenlabs.io](https://elevenlabs.io)
-2. Create an account or sign in
-3. Go to your profile settings
-4. Copy your API key
-5. Add it to your `.env.local`
+### NextAuth Setup
 
-### 6. Development Server
+1. Generate a random secret for NextAuth:
+   ```bash
+   openssl rand -base64 32
+   ```
+2. Paste the result as `NEXTAUTH_SECRET`
+
+## 2. Database Setup
+
+1. In your Supabase dashboard, go to the SQL Editor
+2. Copy the contents of `supabase/schema.sql`
+3. Paste and run the SQL to create all necessary tables and functions
+
+## 3. Storage Setup
+
+1. In your Supabase dashboard, go to Storage
+2. Create a new bucket called `workout-videos`
+3. Set the bucket to public if you want public access to videos
+4. Configure RLS policies for the bucket if needed
+
+## 4. Install Dependencies
 
 ```bash
-# Start the development server
+npm install
+# or
+pnpm install
+# or
+yarn install
+```
+
+## 5. Run the Development Server
+
+```bash
 npm run dev
-
-# The API will be available at http://localhost:3000/api
+# or
+pnpm dev
+# or
+yarn dev
 ```
 
-### 7. Test the Setup
+## 6. Test the Setup
 
-```bash
-# Test health endpoint
-npm run health
+1. Open [http://localhost:3000](http://localhost:3000)
+2. Try uploading a video file
+3. Check the browser console for any errors
+4. Verify that data is being stored in your Supabase database
 
-# Or manually test
-curl http://localhost:3000/api/health
-```
+## API Endpoints
 
-You should see a response like:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "version": "1.0.0",
-  "environment": "development",
-  "services": {
-    "database": "connected",
-    "openai": "configured",
-    "elevenlabs": "configured"
-  }
-}
-```
+The backend provides the following API endpoints:
 
-## 🧪 Testing the APIs
+### Authentication
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/signin` - User login
+- `POST /api/auth/signout` - User logout
 
-### Test Authentication
+### Video Processing
+- `POST /api/video/upload` - Upload workout video
+- `POST /api/pose/analyze` - Analyze pose from video
+- `POST /api/feedback/generate` - Generate AI feedback
 
-```bash
-# Sign up a new user
-curl -X POST http://localhost:3000/api/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123",
-    "full_name": "Test User"
-  }'
+### Data Management
+- `GET /api/workouts` - Get all workouts
+- `POST /api/workouts` - Create new workout
+- `GET /api/sessions` - Get user sessions
+- `POST /api/sessions` - Create new session
+- `GET /api/progress` - Get user progress
 
-# Sign in
-curl -X POST http://localhost:3000/api/auth/signin \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123"
-  }'
-```
+## Database Schema
 
-### Test Pose Analysis
+The database includes the following tables:
 
-```bash
-# Analyze pose (replace with actual session_exercise_id)
-curl -X POST http://localhost:3000/api/pose/analyze \
-  -H "Content-Type: application/json" \
-  -d '{
-    "session_exercise_id": "your-session-exercise-id",
-    "keypoints": [
-      {
-        "x": 0.5,
-        "y": 0.3,
-        "confidence": 0.95
-      }
-    ]
-  }'
-```
+- `profiles` - User profiles
+- `workouts` - Workout templates
+- `workout_sessions` - Individual workout sessions
+- `pose_analysis` - Detailed pose analysis data
+- `user_progress` - User progress tracking
 
-### Test Feedback Generation
+## Features Implemented
 
-```bash
-# Generate feedback (replace with actual session_id)
-curl -X POST http://localhost:3000/api/feedback/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "session_id": "your-session-id",
-    "feedback_type": "post_session"
-  }'
-```
+✅ **Authentication System**
+- User registration and login
+- Session management
+- Profile creation
 
-## 🚀 Deployment
+✅ **Video Upload & Storage**
+- File upload to Supabase Storage
+- Video format validation
+- File size limits
 
-### Google Cloud Platform Deployment
+✅ **Pose Detection**
+- Mock pose analysis (ready for MediaPipe integration)
+- Form scoring system
+- Rep counting
 
-1. **Set up Google Cloud Project**:
-   ```bash
-   # Install Google Cloud CLI if not already installed
-   # https://cloud.google.com/sdk/docs/install
+✅ **AI Feedback Generation**
+- OpenAI integration for personalized feedback
+- Exercise-specific analysis
+- Motivational coaching
 
-   # Authenticate
-   gcloud auth login
+✅ **Progress Tracking**
+- Session history
+- Form score tracking
+- Streak counting
+- Statistics dashboard
 
-   # Create a project (replace with your project ID)
-   gcloud projects create your-project-id
-   gcloud config set project your-project-id
-   ```
+## Next Steps for Production
 
-2. **Deploy using the deployment script**:
-   ```bash
-   # Set environment variables
-   export GOOGLE_CLOUD_PROJECT_ID=your-project-id
-   export GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
+1. **Real Pose Detection**: Integrate MediaPipe or MoveNet for actual pose detection
+2. **Real-time Analysis**: Implement WebRTC for live video analysis
+3. **Advanced AI**: Add more sophisticated form analysis algorithms
+4. **User Management**: Complete the authentication UI
+5. **Mobile Optimization**: Ensure mobile compatibility
+6. **Performance**: Optimize for production deployment
 
-   # Run deployment
-   npm run deploy
-   ```
-
-3. **Manual deployment**:
-   ```bash
-   # Build and push Docker image
-   npm run docker:build
-   docker tag vibe-coach-backend gcr.io/your-project-id/vibe-coach-backend
-   docker push gcr.io/your-project-id/vibe-coach-backend
-
-   # Deploy to Cloud Run
-   gcloud run deploy vibe-coach-backend \
-     --image gcr.io/your-project-id/vibe-coach-backend \
-     --platform managed \
-     --region us-central1 \
-     --allow-unauthenticated
-   ```
-
-### Environment Variables for Production
-
-Make sure to set these in your Google Cloud Run service:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENAI_API_KEY`
-- `ELEVENLABS_API_KEY`
-- `NEXT_PUBLIC_APP_URL` (your production URL)
-- `NODE_ENV=production`
-- `ALLOWED_ORIGINS` (your frontend domains)
-
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-1. **Database Connection Failed**:
-   - Check your Supabase URL and keys
-   - Verify the database schema is set up correctly
-   - Check if RLS policies are properly configured
+1. **Supabase Connection Error**
+   - Check your environment variables
+   - Verify your Supabase project is active
+   - Ensure RLS policies are correctly set
 
-2. **OpenAI API Errors**:
+2. **OpenAI API Error**
    - Verify your API key is correct
-   - Check if you have sufficient credits
-   - Ensure the API key has the right permissions
+   - Check your OpenAI account has sufficient credits
+   - Ensure the API key has the necessary permissions
 
-3. **ElevenLabs API Errors**:
-   - Verify your API key is correct
-   - Check your account limits
-   - Ensure the voice ID is valid
+3. **File Upload Issues**
+   - Check file size limits
+   - Verify file format is supported
+   - Ensure Supabase Storage bucket exists
 
-4. **CORS Issues**:
-   - Check your `ALLOWED_ORIGINS` environment variable
-   - Ensure your frontend domain is included
-   - Verify the CORS middleware is working
+4. **Database Errors**
+   - Run the schema.sql file completely
+   - Check for any SQL syntax errors
+   - Verify all tables were created successfully
 
-5. **Authentication Issues**:
-   - Check if the user exists in Supabase
-   - Verify the JWT token is valid
-   - Ensure RLS policies allow the operation
-
-### Debug Mode
-
-Enable debug logging by setting:
-```env
-NODE_ENV=development
-DEBUG=vibe-coach:*
-```
-
-### Logs
-
-Check application logs:
-```bash
-# For local development
-npm run dev
-
-# For Google Cloud Run
-gcloud logs read --service=vibe-coach-backend --limit=50
-```
-
-## 📚 Next Steps
-
-1. **Frontend Integration**: Connect your Next.js frontend to these APIs
-2. **Real-time Features**: Implement WebSocket connections for live feedback
-3. **Monitoring**: Set up monitoring and alerting
-4. **Scaling**: Configure auto-scaling based on usage
-5. **Security**: Implement rate limiting and additional security measures
-
-## 🆘 Support
+### Getting Help
 
 If you encounter issues:
+1. Check the browser console for errors
+2. Check the terminal for server errors
+3. Verify all environment variables are set correctly
+4. Ensure all dependencies are installed
 
-1. Check the logs for error messages
-2. Verify all environment variables are set correctly
-3. Test individual API endpoints
-4. Check the database connection and schema
-5. Review the API documentation in the README
+## Security Notes
 
-For additional help, refer to:
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Supabase Documentation](https://supabase.com/docs)
-- [OpenAI API Documentation](https://platform.openai.com/docs)
-- [ElevenLabs Documentation](https://docs.elevenlabs.io)
-- [Google Cloud Run Documentation](https://cloud.google.com/run/docs)
+- Never commit your `.env.local` file
+- Use environment variables for all sensitive data
+- Implement proper RLS policies in Supabase
+- Validate all user inputs
+- Use HTTPS in production
+
+## Deployment
+
+For production deployment:
+1. Set up production environment variables
+2. Configure your domain in Supabase
+3. Deploy to Vercel, Netlify, or your preferred platform
+4. Set up monitoring and logging
+5. Configure CDN for video storage if needed

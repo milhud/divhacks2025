@@ -1,320 +1,212 @@
 -- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+create extension if not exists "uuid-ossp";
 
--- Create profiles table (extends auth.users)
-CREATE TABLE public.profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  email TEXT,
-  full_name TEXT,
-  avatar_url TEXT,
-  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'trainer', 'admin')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Create profiles table
+create table profiles (
+  id uuid references auth.users not null primary key,
+  updated_at timestamp with time zone,
+  username text unique,
+  full_name text,
+  avatar_url text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  
+  constraint username_length check (char_length(username) >= 3)
 );
 
--- Create gyms table
-CREATE TABLE public.gyms (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  address TEXT,
-  phone TEXT,
-  website TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Set up Row Level Security (RLS)
+alter table profiles enable row level security;
 
--- Create gym_members table (many-to-many relationship)
-CREATE TABLE public.gym_members (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  gym_id UUID REFERENCES public.gyms(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  role TEXT DEFAULT 'member' CHECK (role IN ('member', 'trainer', 'admin')),
-  joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(gym_id, user_id)
-);
+-- Create policies for profiles
+create policy "Public profiles are viewable by everyone." on profiles
+  for select using (true);
 
--- Create exercises table
-CREATE TABLE public.exercises (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  category TEXT, -- e.g., 'strength', 'cardio', 'flexibility', 'rehab'
-  difficulty_level INTEGER DEFAULT 1 CHECK (difficulty_level BETWEEN 1 AND 5),
-  target_muscles TEXT[], -- array of muscle groups
-  instructions TEXT,
-  demo_video_url TEXT,
-  pose_keypoints JSONB, -- store reference pose keypoints
-  created_by UUID REFERENCES public.profiles(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+create policy "Users can insert their own profile." on profiles
+  for insert with check ((select auth.uid()) = id);
+
+create policy "Users can update own profile." on profiles
+  for update using ((select auth.uid()) = id);
 
 -- Create workouts table
-CREATE TABLE public.workouts (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  created_by UUID REFERENCES public.profiles(id),
-  gym_id UUID REFERENCES public.gyms(id),
-  is_public BOOLEAN DEFAULT false,
-  difficulty_level INTEGER DEFAULT 1 CHECK (difficulty_level BETWEEN 1 AND 5),
-  estimated_duration INTEGER, -- in minutes
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table workouts (
+  id uuid default uuid_generate_v4() primary key,
+  title text not null,
+  description text,
+  duration integer, -- in minutes
+  difficulty text check (difficulty in ('Beginner', 'Intermediate', 'Advanced')),
+  category text not null,
+  exercises jsonb default '[]'::jsonb, -- array of exercise objects
+  image_url text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create workout_exercises table (many-to-many relationship)
-CREATE TABLE public.workout_exercises (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  workout_id UUID REFERENCES public.workouts(id) ON DELETE CASCADE,
-  exercise_id UUID REFERENCES public.exercises(id) ON DELETE CASCADE,
-  order_index INTEGER NOT NULL,
-  sets INTEGER DEFAULT 1,
-  reps INTEGER,
-  duration_seconds INTEGER, -- for time-based exercises
-  rest_seconds INTEGER DEFAULT 0,
-  notes TEXT,
-  UNIQUE(workout_id, order_index)
-);
+-- Enable RLS for workouts
+alter table workouts enable row level security;
 
--- Create workout_assignments table
-CREATE TABLE public.workout_assignments (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  workout_id UUID REFERENCES public.workouts(id) ON DELETE CASCADE,
-  assigned_to UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  assigned_by UUID REFERENCES public.profiles(id),
-  due_date TIMESTAMP WITH TIME ZONE,
-  status TEXT DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'completed', 'skipped')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Create policies for workouts
+create policy "Workouts are viewable by everyone." on workouts
+  for select using (true);
 
 -- Create workout_sessions table
-CREATE TABLE public.workout_sessions (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  workout_id UUID REFERENCES public.workouts(id),
-  assignment_id UUID REFERENCES public.workout_assignments(id),
-  started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  completed_at TIMESTAMP WITH TIME ZONE,
-  status TEXT DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'completed', 'abandoned')),
-  total_duration INTEGER, -- in seconds
-  overall_score DECIMAL(5,2), -- 0-100
-  notes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table workout_sessions (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users not null,
+  workout_id uuid references workouts not null,
+  video_url text, -- URL to uploaded video in Supabase storage
+  pose_data jsonb, -- pose detection results
+  form_score integer check (form_score >= 0 and form_score <= 100),
+  ai_feedback text,
+  duration integer, -- actual duration in minutes
+  rep_count integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create session_exercises table (tracks individual exercises within a session)
-CREATE TABLE public.session_exercises (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  session_id UUID REFERENCES public.workout_sessions(id) ON DELETE CASCADE,
-  exercise_id UUID REFERENCES public.exercises(id),
-  order_index INTEGER NOT NULL,
-  started_at TIMESTAMP WITH TIME ZONE,
-  completed_at TIMESTAMP WITH TIME ZONE,
-  duration_seconds INTEGER,
-  rep_count INTEGER DEFAULT 0,
-  form_score DECIMAL(5,2), -- 0-100
-  feedback TEXT,
-  pose_data JSONB, -- store pose keypoints data
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Enable RLS for workout_sessions
+alter table workout_sessions enable row level security;
+
+-- Create policies for workout_sessions
+create policy "Users can view their own sessions." on workout_sessions
+  for select using ((select auth.uid()) = user_id);
+
+create policy "Users can insert their own sessions." on workout_sessions
+  for insert with check ((select auth.uid()) = user_id);
+
+create policy "Users can update their own sessions." on workout_sessions
+  for update using ((select auth.uid()) = user_id);
+
+-- Create pose_analysis table for storing detailed pose data
+create table pose_analysis (
+  id uuid default uuid_generate_v4() primary key,
+  session_id uuid references workout_sessions not null,
+  frame_number integer not null,
+  timestamp real not null, -- timestamp in seconds
+  keypoints jsonb not null, -- pose keypoints data
+  confidence real, -- overall confidence score
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create feedback table (stores AI-generated feedback)
-CREATE TABLE public.feedback (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  session_id UUID REFERENCES public.workout_sessions(id) ON DELETE CASCADE,
-  exercise_id UUID REFERENCES public.exercises(id),
-  feedback_type TEXT CHECK (feedback_type IN ('real_time', 'post_session', 'form_correction')),
-  content TEXT NOT NULL,
-  audio_url TEXT, -- for TTS feedback
-  severity TEXT DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Enable RLS for pose_analysis
+alter table pose_analysis enable row level security;
+
+-- Create policies for pose_analysis
+create policy "Users can view pose analysis for their sessions." on pose_analysis
+  for select using (
+    exists (
+      select 1 from workout_sessions 
+      where workout_sessions.id = pose_analysis.session_id 
+      and workout_sessions.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can insert pose analysis for their sessions." on pose_analysis
+  for insert with check (
+    exists (
+      select 1 from workout_sessions 
+      where workout_sessions.id = pose_analysis.session_id 
+      and workout_sessions.user_id = auth.uid()
+    )
+  );
+
+-- Create user_progress table for tracking overall progress
+create table user_progress (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users not null,
+  total_workouts integer default 0,
+  total_duration integer default 0, -- in minutes
+  average_form_score real default 0,
+  current_streak integer default 0,
+  longest_streak integer default 0,
+  last_workout_date date,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  
+  unique(user_id)
 );
 
--- Create pose_analysis table (stores real-time pose analysis data)
-CREATE TABLE public.pose_analysis (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  session_exercise_id UUID REFERENCES public.session_exercises(id) ON DELETE CASCADE,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  keypoints JSONB NOT NULL, -- pose keypoints data
-  angles JSONB, -- calculated joint angles
-  form_metrics JSONB, -- form analysis metrics
-  corrections JSONB, -- suggested corrections
-  confidence_score DECIMAL(5,2) -- 0-100
-);
+-- Enable RLS for user_progress
+alter table user_progress enable row level security;
 
--- Enable Row Level Security (RLS)
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.gyms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.gym_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.exercises ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.workouts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.workout_exercises ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.workout_assignments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.workout_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.session_exercises ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pose_analysis ENABLE ROW LEVEL SECURITY;
+-- Create policies for user_progress
+create policy "Users can view their own progress." on user_progress
+  for select using ((select auth.uid()) = user_id);
 
--- RLS Policies for profiles
-CREATE POLICY "Users can view their own profile" ON public.profiles
-  FOR SELECT USING (auth.uid() = id);
+create policy "Users can insert their own progress." on user_progress
+  for insert with check ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can update their own profile" ON public.profiles
-  FOR UPDATE USING (auth.uid() = id);
+create policy "Users can update their own progress." on user_progress
+  for update using ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can insert their own profile" ON public.profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
+-- Create function to handle new user registration
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, full_name, avatar_url)
+  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+  
+  insert into public.user_progress (user_id)
+  values (new.id);
+  
+  return new;
+end;
+$$ language plpgsql security definer;
 
--- RLS Policies for gyms
-CREATE POLICY "Anyone can view public gyms" ON public.gyms
-  FOR SELECT USING (true);
+-- Create trigger for new user registration
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
 
-CREATE POLICY "Gym admins can manage their gym" ON public.gyms
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM public.gym_members 
-      WHERE gym_id = gyms.id 
-      AND user_id = auth.uid() 
-      AND role IN ('admin', 'trainer')
-    )
-  );
+-- Create function to update user progress
+create or replace function public.update_user_progress()
+returns trigger as $$
+begin
+  -- Update user progress when a new session is created
+  if TG_OP = 'INSERT' then
+    update user_progress
+    set 
+      total_workouts = total_workouts + 1,
+      total_duration = total_duration + coalesce(new.duration, 0),
+      average_form_score = (
+        select avg(form_score) 
+        from workout_sessions 
+        where user_id = new.user_id and form_score is not null
+      ),
+      last_workout_date = current_date,
+      updated_at = now()
+    where user_id = new.user_id;
+  end if;
+  
+  return coalesce(new, old);
+end;
+$$ language plpgsql security definer;
 
--- RLS Policies for gym_members
-CREATE POLICY "Users can view gym memberships" ON public.gym_members
-  FOR SELECT USING (user_id = auth.uid() OR EXISTS (
-    SELECT 1 FROM public.gym_members gm2 
-    WHERE gm2.gym_id = gym_members.gym_id 
-    AND gm2.user_id = auth.uid() 
-    AND gm2.role IN ('admin', 'trainer')
-  ));
+-- Create trigger to update user progress
+create trigger on_workout_session_created
+  after insert on workout_sessions
+  for each row execute procedure public.update_user_progress();
 
--- RLS Policies for exercises
-CREATE POLICY "Anyone can view public exercises" ON public.exercises
-  FOR SELECT USING (true);
-
-CREATE POLICY "Users can create exercises" ON public.exercises
-  FOR INSERT WITH CHECK (auth.uid() = created_by);
-
-CREATE POLICY "Users can update their own exercises" ON public.exercises
-  FOR UPDATE USING (auth.uid() = created_by);
-
--- RLS Policies for workouts
-CREATE POLICY "Users can view public workouts or their own" ON public.workouts
-  FOR SELECT USING (
-    is_public = true OR 
-    created_by = auth.uid() OR
-    EXISTS (
-      SELECT 1 FROM public.workout_assignments 
-      WHERE workout_id = workouts.id 
-      AND assigned_to = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can create workouts" ON public.workouts
-  FOR INSERT WITH CHECK (auth.uid() = created_by);
-
-CREATE POLICY "Users can update their own workouts" ON public.workouts
-  FOR UPDATE USING (auth.uid() = created_by);
-
--- RLS Policies for workout_sessions
-CREATE POLICY "Users can view their own sessions" ON public.workout_sessions
-  FOR SELECT USING (user_id = auth.uid());
-
-CREATE POLICY "Users can create their own sessions" ON public.workout_sessions
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own sessions" ON public.workout_sessions
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- RLS Policies for session_exercises
-CREATE POLICY "Users can view their session exercises" ON public.session_exercises
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.workout_sessions 
-      WHERE id = session_exercises.session_id 
-      AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can create session exercises" ON public.session_exercises
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.workout_sessions 
-      WHERE id = session_exercises.session_id 
-      AND user_id = auth.uid()
-    )
-  );
-
--- RLS Policies for feedback
-CREATE POLICY "Users can view their feedback" ON public.feedback
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.workout_sessions 
-      WHERE id = feedback.session_id 
-      AND user_id = auth.uid()
-    )
-  );
-
--- RLS Policies for pose_analysis
-CREATE POLICY "Users can view their pose analysis" ON public.pose_analysis
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.session_exercises se
-      JOIN public.workout_sessions ws ON se.session_id = ws.id
-      WHERE se.id = pose_analysis.session_exercise_id 
-      AND ws.user_id = auth.uid()
-    )
-  );
-
--- Create function to handle new user creation
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name, avatar_url)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    NEW.raw_user_meta_data->>'full_name',
-    NEW.raw_user_meta_data->>'avatar_url'
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create trigger for new user creation
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create triggers for updated_at
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_gyms_updated_at BEFORE UPDATE ON public.gyms
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_exercises_updated_at BEFORE UPDATE ON public.exercises
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_workouts_updated_at BEFORE UPDATE ON public.workouts
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_workout_assignments_updated_at BEFORE UPDATE ON public.workout_assignments
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_workout_sessions_updated_at BEFORE UPDATE ON public.workout_sessions
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+-- Insert sample workouts
+insert into workouts (title, description, duration, difficulty, category, exercises, image_url) values
+('Full Body Strength', 'Build overall strength with compound movements', 45, 'Intermediate', 'Strength', 
+ '[{"name": "Squats", "reps": 12, "sets": 3}, {"name": "Push-ups", "reps": 10, "sets": 3}, {"name": "Lunges", "reps": 10, "sets": 3}]', 
+ '/person-doing-strength-training-workout.jpg'),
+ 
+('Upper Body Focus', 'Target chest, back, shoulders, and arms', 30, 'Beginner', 'Strength',
+ '[{"name": "Push-ups", "reps": 8, "sets": 3}, {"name": "Pull-ups", "reps": 5, "sets": 3}, {"name": "Shoulder Press", "reps": 10, "sets": 3}]',
+ '/person-doing-upper-body-exercises.jpg'),
+ 
+('Lower Body Power', 'Explosive leg and glute exercises', 40, 'Advanced', 'Strength',
+ '[{"name": "Squats", "reps": 15, "sets": 4}, {"name": "Lunges", "reps": 12, "sets": 3}, {"name": "Jump Squats", "reps": 10, "sets": 3}]',
+ '/person-doing-squats-and-leg-exercises.jpg'),
+ 
+('Core & Stability', 'Strengthen your core and improve balance', 25, 'Beginner', 'Core',
+ '[{"name": "Plank", "reps": 1, "sets": 3, "duration": 30}, {"name": "Crunches", "reps": 15, "sets": 3}, {"name": "Mountain Climbers", "reps": 20, "sets": 3}]',
+ '/person-doing-core-exercises-and-planks.jpg'),
+ 
+('HIIT Cardio Blast', 'High-intensity intervals for maximum burn', 20, 'Intermediate', 'Cardio',
+ '[{"name": "Burpees", "reps": 10, "sets": 4, "rest": 30}, {"name": "Jumping Jacks", "reps": 30, "sets": 4, "rest": 30}, {"name": "High Knees", "reps": 30, "sets": 4, "rest": 30}]',
+ '/high-intensity-cardio.png'),
+ 
+('Mobility & Flexibility', 'Improve range of motion and prevent injury', 30, 'Beginner', 'Mobility',
+ '[{"name": "Cat-Cow Stretch", "reps": 1, "sets": 3, "duration": 30}, {"name": "Hip Flexor Stretch", "reps": 1, "sets": 2, "duration": 45}, {"name": "Shoulder Rolls", "reps": 10, "sets": 3}]',
+ '/person-doing-stretching-and-mobility-exercises.jpg');

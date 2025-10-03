@@ -1,279 +1,217 @@
 # Vibe Coach - AI Fitness Assistant
 
-A real-time AI fitness and rehabilitation assistant built with Next.js, featuring both frontend and backend components. The application provides pose analysis, AI-powered feedback, text-to-speech, and comprehensive workout management.
+A real-time AI workout assistant that uses computer vision and LLM-powered feedback to improve exercise form and support rehabilitation.
 
 ## 🚀 Features
 
-### Frontend
-- **Modern UI**: Built with Next.js 15, React 19, and Tailwind CSS
-- **Responsive Design**: Mobile-first design with beautiful components
-- **Real-time Video**: WebRTC integration for live pose analysis
-- **Workout Tracking**: Progress tracking and workout management
-- **Theme Support**: Dark/light mode with next-themes
+- **Real-time Pose Detection**: Advanced pose analysis using TensorFlow.js
+- **AI-Powered Feedback**: Personalized coaching with OpenAI integration
+- **Video Upload & Analysis**: Upload workout videos for detailed form analysis
+- **Progress Tracking**: Track your improvement over time
+- **User Authentication**: Secure user accounts with Supabase
+- **Responsive Design**: Works on desktop and mobile devices
 
-### Backend
-- **Real-time Pose Analysis**: Analyze exercise form using computer vision
-- **AI-Powered Feedback**: Generate personalized workout feedback using OpenAI
-- **Text-to-Speech**: Convert feedback to audio using ElevenLabs
-- **Workout Management**: Create, manage, and track workouts and sessions
-- **User Authentication**: Secure user management with Supabase Auth
-- **Database**: PostgreSQL with Row Level Security (RLS)
-- **Google Cloud Ready**: Optimized for deployment on Google Cloud Platform
+## 🛠️ Tech Stack
 
-## 🛠 Tech Stack
-
-### Frontend
-- **Framework**: Next.js 15.2.4 with TypeScript
-- **UI Components**: Radix UI primitives
-- **Styling**: Tailwind CSS with custom animations
-- **Icons**: Lucide React
-- **Forms**: React Hook Form with Zod validation
-- **Charts**: Recharts for data visualization
-
-### Backend
-- **Framework**: Next.js API routes
-- **Database**: Supabase (PostgreSQL)
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, Supabase
+- **Database**: PostgreSQL (via Supabase)
+- **AI/ML**: TensorFlow.js, OpenAI GPT-4
 - **Authentication**: Supabase Auth
-- **AI**: OpenAI GPT-4 for feedback generation
-- **TTS**: ElevenLabs for text-to-speech
-- **Pose Analysis**: Custom pose detection algorithms
-- **Deployment**: Google Cloud Platform ready
+- **Storage**: Supabase Storage
+- **Deployment**: Vercel
 
 ## 📋 Prerequisites
 
-Before running this project, ensure you have:
-
 - Node.js 18+ installed
-- A Supabase project set up
-- OpenAI API key
-- ElevenLabs API key
-- Google Cloud Project (for deployment)
+- A Supabase account
+- An OpenAI API key
+- Git installed
 
-## 🔧 Installation
+## 🚀 Quick Start
 
-1. **Clone the repository**
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd divhacks2025
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+# or
+pnpm install
+# or
+yarn install
+```
+
+### 3. Environment Setup
+
+1. Copy the environment template:
    ```bash
-   git clone <repository-url>
-   cd vibe-coach-app
+   cp .env.local.example .env.local
    ```
 
-2. **Install dependencies**
+2. Fill in your environment variables in `.env.local`:
+
+#### Supabase Setup
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. In your Supabase dashboard:
+   - Go to Settings > API
+   - Copy your Project URL and paste it as `NEXT_PUBLIC_SUPABASE_URL`
+   - Copy your anon/public key and paste it as `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Copy your service_role key and paste it as `SUPABASE_SERVICE_ROLE_KEY`
+
+#### OpenAI Setup
+1. Go to [platform.openai.com](https://platform.openai.com)
+2. Create an API key
+3. Copy the key and paste it as `OPENAI_API_KEY`
+
+#### NextAuth Setup
+1. Generate a random secret for NextAuth:
    ```bash
-   npm install
+   openssl rand -base64 32
    ```
+2. Paste the result as `NEXTAUTH_SECRET`
 
-3. **Set up environment variables**
-   ```bash
-   cp env.example .env.local
-   ```
+### 4. Database Setup
 
-4. **Configure your environment variables in `.env.local`**
-   ```env
-   # Supabase Configuration
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+1. In your Supabase dashboard, go to the SQL Editor
+2. Copy the contents of `supabase/schema.sql`
+3. Paste and run the SQL to create all necessary tables and functions
 
-   # OpenAI Configuration
-   OPENAI_API_KEY=your_openai_api_key
+### 5. Storage Setup
 
-   # ElevenLabs Configuration
-   ELEVENLABS_API_KEY=your_elevenlabs_api_key
+1. In your Supabase dashboard, go to Storage
+2. Create a new bucket called `workout-videos`
+3. Set the bucket to public if you want public access to videos
 
-   # Google Cloud Configuration (for deployment)
-   GOOGLE_CLOUD_PROJECT_ID=your_google_cloud_project_id
-   GOOGLE_APPLICATION_CREDENTIALS=path_to_service_account_key.json
-
-   # Application Configuration
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
-   NODE_ENV=development
-
-   # CORS Configuration
-   ALLOWED_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
-   ```
-
-5. **Set up the database**
-   - Go to your Supabase project dashboard
-   - Navigate to the SQL Editor
-   - Run the SQL script from `supabase/schema.sql` to create all tables and policies
-
-6. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-The application will be available at `http://localhost:3000`
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-#### POST `/api/auth/signup`
-Create a new user account.
-
-#### POST `/api/auth/signin`
-Sign in an existing user.
-
-#### POST `/api/auth/signout`
-Sign out the current user.
-
-### Pose Analysis Endpoints
-
-#### POST `/api/pose/analyze`
-Analyze pose data for form correction.
-
-### Feedback Endpoints
-
-#### POST `/api/feedback/generate`
-Generate AI-powered feedback for workouts.
-
-### Text-to-Speech Endpoints
-
-#### POST `/api/tts/generate`
-Convert text to speech using ElevenLabs.
-
-### Workout Management Endpoints
-
-- `GET /api/workouts` - Get workouts
-- `POST /api/workouts` - Create workout
-- `GET /api/workouts/[id]` - Get specific workout
-- `PUT /api/workouts/[id]` - Update workout
-- `DELETE /api/workouts/[id]` - Delete workout
-
-### Session Tracking Endpoints
-
-- `GET /api/sessions` - Get user's workout sessions
-- `POST /api/sessions` - Start a new workout session
-- `GET /api/sessions/[id]` - Get specific session
-- `PUT /api/sessions/[id]` - Update session
-- `DELETE /api/sessions/[id]` - Delete session
-
-### Exercise Management Endpoints
-
-- `GET /api/exercises` - Get exercises
-- `POST /api/exercises` - Create exercise
-
-## 🗄 Database Schema
-
-The database includes the following main tables:
-
-- **profiles**: User profiles and roles
-- **gyms**: Gym/clinic information
-- **exercises**: Exercise definitions and pose templates
-- **workouts**: Workout plans with exercise sequences
-- **workout_sessions**: Individual workout sessions
-- **session_exercises**: Exercises within a session
-- **feedback**: AI-generated feedback
-- **pose_analysis**: Real-time pose analysis data
-
-All tables have Row Level Security (RLS) enabled for data protection.
-
-## 🚀 Deployment
-
-### Google Cloud Platform
-
-1. **Set up Google Cloud Project**
-   ```bash
-   gcloud projects create your-project-id
-   gcloud config set project your-project-id
-   ```
-
-2. **Deploy using the deployment script**
-   ```bash
-   # Set environment variables
-   export GOOGLE_CLOUD_PROJECT_ID=your-project-id
-   export GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
-
-   # Run deployment
-   npm run deploy
-   ```
-
-3. **Manual deployment**
-   ```bash
-   # Build and push Docker image
-   npm run docker:build
-   docker tag vibe-coach-app gcr.io/your-project-id/vibe-coach-app
-   docker push gcr.io/your-project-id/vibe-coach-app
-
-   # Deploy to Cloud Run
-   gcloud run deploy vibe-coach-app \
-     --image gcr.io/your-project-id/vibe-coach-app \
-     --platform managed \
-     --region us-central1 \
-     --allow-unauthenticated
-   ```
-
-## 🧪 Testing
-
-Run the development server and test endpoints using:
+### 6. Run the Development Server
 
 ```bash
 npm run dev
+# or
+pnpm dev
+# or
+yarn dev
 ```
 
-Test with tools like Postman or curl:
+### 7. Open Your Browser
 
-```bash
-# Test health endpoint
-curl http://localhost:3000/api/health
+Navigate to [http://localhost:3000](http://localhost:3000) to see your app!
 
-# Test pose analysis
-curl -X POST http://localhost:3000/api/pose/analyze \
-  -H "Content-Type: application/json" \
-  -d '{
-    "session_exercise_id": "uuid",
-    "keypoints": [{"x": 0.5, "y": 0.3, "confidence": 0.95}]
-  }'
+## 📁 Project Structure
+
 ```
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   │   ├── auth/          # Authentication endpoints
+│   │   ├── video/         # Video upload endpoints
+│   │   ├── pose/          # Pose analysis endpoints
+│   │   ├── feedback/      # AI feedback endpoints
+│   │   ├── workouts/      # Workout management
+│   │   ├── sessions/      # Session management
+│   │   └── progress/      # Progress tracking
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/            # React components
+│   ├── ui/               # UI components
+│   ├── auth-form.tsx     # Authentication form
+│   └── video-upload.tsx  # Video upload component
+├── lib/                  # Utility libraries
+│   ├── supabase.ts       # Supabase client
+│   ├── auth-context.tsx  # Authentication context
+│   └── pose-detection.ts # Pose detection utilities
+├── supabase/             # Database schema
+│   └── schema.sql        # Database setup
+└── public/               # Static assets
+```
+
+## 🔧 API Endpoints
+
+### Authentication
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/signin` - User login
+- `POST /api/auth/signout` - User logout
+
+### Video Processing
+- `POST /api/video/upload` - Upload workout video
+- `POST /api/pose/analyze` - Analyze pose from video
+- `POST /api/feedback/generate` - Generate AI feedback
+
+### Data Management
+- `GET /api/workouts` - Get all workouts
+- `POST /api/workouts` - Create new workout
+- `GET /api/sessions` - Get user sessions
+- `POST /api/sessions` - Create new session
+- `GET /api/progress` - Get user progress
+
+## 🎯 How It Works
+
+1. **User Registration**: Users create accounts and sign in
+2. **Video Upload**: Users upload workout videos
+3. **Pose Analysis**: AI analyzes the video for pose keypoints
+4. **Form Scoring**: System scores the user's form
+5. **AI Feedback**: OpenAI generates personalized feedback
+6. **Progress Tracking**: Results are stored and tracked over time
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add your environment variables in Vercel dashboard
+4. Deploy!
+
+### Deploy to Other Platforms
+
+The app can be deployed to any platform that supports Next.js:
+- Netlify
+- Railway
+- Render
+- DigitalOcean App Platform
 
 ## 🔒 Security
 
-- Row Level Security (RLS) enabled on all database tables
-- JWT-based authentication via Supabase
-- CORS configuration for allowed origins
-- Input validation on all API endpoints
-- Rate limiting (recommended for production)
-
-## 📝 Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run deploy` - Deploy to Google Cloud
-- `npm run docker:build` - Build Docker image
-- `npm run docker:run` - Run Docker container
-- `npm run health` - Test health endpoint
+- All API routes are protected with proper authentication
+- File uploads are validated for type and size
+- Database queries use Row Level Security (RLS)
+- Environment variables are used for sensitive data
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
+4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+## 📝 License
 
 This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-For support and questions:
+If you encounter any issues:
 
-1. Check the API documentation above
-2. Review the database schema in `supabase/schema.sql`
-3. Check environment variable configuration
-4. Ensure all required services are properly set up
+1. Check the browser console for errors
+2. Check the terminal for server errors
+3. Verify all environment variables are set correctly
+4. Ensure all dependencies are installed
+5. Check the [SETUP.md](./SETUP.md) file for detailed setup instructions
 
-## 🔄 Frontend-Backend Integration
+## 🎉 Acknowledgments
 
-This full-stack application provides:
+- Built with [Next.js](https://nextjs.org/)
+- Styled with [Tailwind CSS](https://tailwindcss.com/)
+- Database powered by [Supabase](https://supabase.com/)
+- AI powered by [OpenAI](https://openai.com/)
+- Pose detection with [TensorFlow.js](https://www.tensorflow.org/js/)
 
-1. **Frontend**: Modern React-based UI with real-time video capture
-2. **Backend**: Comprehensive API for pose analysis, AI feedback, and data management
-3. **Database**: Secure PostgreSQL database with real-time capabilities
-4. **AI Integration**: OpenAI for intelligent feedback and ElevenLabs for audio
-5. **Deployment**: Production-ready Google Cloud Platform deployment
+---
 
-The application is designed to work seamlessly with both frontend and backend components running together, providing a complete real-time AI fitness coaching experience.
+**Happy coding! 🏋️‍♀️💪**

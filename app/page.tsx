@@ -1,62 +1,104 @@
+"use client"
+
 import { VideoUpload } from "@/components/video-upload"
+import { AuthForm } from "@/components/auth-form"
+import { useAuth } from "@/lib/auth-context"
 import Link from "next/link"
+import { useState } from "react"
 
 export default function Home() {
+  const { user, signOut } = useAuth()
+  const [showAuth, setShowAuth] = useState(false)
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">V</span>
-            </div>
-            <h1 className="text-2xl font-bold text-balance">
-              Vibe <span className="text-primary">Coach</span>
-            </h1>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">V</span>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Vibe <span className="text-blue-600">Coach</span>
+              </h1>
             </Link>
-            <Link href="/workouts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Workouts
-            </Link>
-            <Link href="/progress" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Progress
-            </Link>
-          </nav>
-          <button className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors">
-            Sign In
-          </button>
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/workouts" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                Workouts
+              </Link>
+              <Link href="/progress" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                Progress
+              </Link>
+            </nav>
+            {user ? (
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-600">
+                  Welcome, {user.user_metadata?.full_name || user.email}
+                </span>
+                <button 
+                  onClick={() => signOut()}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowAuth(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <div className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-medium rounded-full mb-6">
+            <div className="inline-block px-4 py-1.5 bg-blue-100 text-blue-800 text-sm font-medium rounded-full mb-6">
               AI-Powered Form Analysis
             </div>
-            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-balance">
-              Perfect Your Form with <span className="text-primary">Real-Time</span> Feedback
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
+              Perfect Your Form with <span className="text-blue-600">Real-Time</span> Feedback
             </h2>
-            <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto text-pretty">
+            <p className="text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
               Upload your workout video and get instant AI-powered analysis on your form, technique, and movement
               patterns. Train smarter, not harder.
             </p>
           </div>
 
           {/* Video Upload Component */}
-          <VideoUpload />
+          {user ? (
+            <VideoUpload />
+          ) : (
+            <div className="text-center py-12">
+              <h3 className="text-2xl font-bold mb-4 text-gray-900">Sign in to start your fitness journey</h3>
+              <p className="text-gray-600 mb-6">
+                Create an account to upload videos and get personalized AI feedback
+              </p>
+              <button 
+                onClick={() => setShowAuth(true)}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Get Started
+              </button>
+            </div>
+          )}
 
           {/* Features */}
           <div className="grid md:grid-cols-3 gap-6 mt-16">
-            <div className="p-6 bg-card rounded-xl border border-border">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-6 bg-white rounded-xl border border-gray-200">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -65,15 +107,15 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Video Analysis</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">Video Analysis</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
                 Advanced pose detection tracks your movements frame by frame
               </p>
             </div>
 
-            <div className="p-6 bg-card rounded-xl border border-border">
-              <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-6 bg-white rounded-xl border border-gray-200">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -82,15 +124,15 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Audio Feedback</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">Audio Feedback</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
                 Real-time voice coaching guides you through proper form
               </p>
             </div>
 
-            <div className="p-6 bg-card rounded-xl border border-border">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-6 bg-white rounded-xl border border-gray-200">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -99,8 +141,8 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Progress Tracking</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">Progress Tracking</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
                 Detailed summaries show your improvement over time
               </p>
             </div>
@@ -109,13 +151,28 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border mt-16">
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-sm text-muted-foreground">
+      <footer className="bg-white border-t border-gray-200 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <p className="text-center text-sm text-gray-600">
             © 2025 Vibe Coach. AI-powered fitness coaching for everyone.
           </p>
         </div>
       </footer>
+
+      {/* Authentication Modal */}
+      {showAuth && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="relative">
+            <button
+              onClick={() => setShowAuth(false)}
+              className="absolute -top-4 -right-4 w-8 h-8 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-lg"
+            >
+              ×
+            </button>
+            <AuthForm />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
