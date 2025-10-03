@@ -1,9 +1,17 @@
-# Vibe Coach Backend API
+# Vibe Coach - AI Fitness Assistant
 
-A real-time AI fitness and rehabilitation assistant backend built with Next.js, Supabase, OpenAI, and ElevenLabs. This backend provides APIs for pose analysis, AI-powered feedback, text-to-speech, and workout management.
+A real-time AI fitness and rehabilitation assistant built with Next.js, featuring both frontend and backend components. The application provides pose analysis, AI-powered feedback, text-to-speech, and comprehensive workout management.
 
 ## 🚀 Features
 
+### Frontend
+- **Modern UI**: Built with Next.js 15, React 19, and Tailwind CSS
+- **Responsive Design**: Mobile-first design with beautiful components
+- **Real-time Video**: WebRTC integration for live pose analysis
+- **Workout Tracking**: Progress tracking and workout management
+- **Theme Support**: Dark/light mode with next-themes
+
+### Backend
 - **Real-time Pose Analysis**: Analyze exercise form using computer vision
 - **AI-Powered Feedback**: Generate personalized workout feedback using OpenAI
 - **Text-to-Speech**: Convert feedback to audio using ElevenLabs
@@ -14,7 +22,16 @@ A real-time AI fitness and rehabilitation assistant backend built with Next.js, 
 
 ## 🛠 Tech Stack
 
-- **Framework**: Next.js 15.1.8 with TypeScript
+### Frontend
+- **Framework**: Next.js 15.2.4 with TypeScript
+- **UI Components**: Radix UI primitives
+- **Styling**: Tailwind CSS with custom animations
+- **Icons**: Lucide React
+- **Forms**: React Hook Form with Zod validation
+- **Charts**: Recharts for data visualization
+
+### Backend
+- **Framework**: Next.js API routes
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
 - **AI**: OpenAI GPT-4 for feedback generation
@@ -37,7 +54,7 @@ Before running this project, ensure you have:
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd vibe-coach-backend
+   cd vibe-coach-app
    ```
 
 2. **Install dependencies**
@@ -85,7 +102,7 @@ Before running this project, ensure you have:
    npm run dev
    ```
 
-The API will be available at `http://localhost:3000/api`
+The application will be available at `http://localhost:3000`
 
 ## 📚 API Documentation
 
@@ -94,35 +111,8 @@ The API will be available at `http://localhost:3000/api`
 #### POST `/api/auth/signup`
 Create a new user account.
 
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "full_name": "John Doe",
-  "role": "user"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "User created successfully",
-  "user": { ... },
-  "session": { ... }
-}
-```
-
 #### POST `/api/auth/signin`
 Sign in an existing user.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
 
 #### POST `/api/auth/signout`
 Sign out the current user.
@@ -132,188 +122,36 @@ Sign out the current user.
 #### POST `/api/pose/analyze`
 Analyze pose data for form correction.
 
-**Request Body:**
-```json
-{
-  "session_exercise_id": "uuid",
-  "keypoints": [
-    {
-      "x": 0.5,
-      "y": 0.3,
-      "confidence": 0.95
-    }
-  ],
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "form_metrics": {
-    "rep_count": 5,
-    "form_score": 85,
-    "corrections": ["Keep your back straight"],
-    "confidence_score": 92
-  },
-  "should_give_feedback": true
-}
-```
-
 ### Feedback Endpoints
 
 #### POST `/api/feedback/generate`
 Generate AI-powered feedback for workouts.
-
-**Request Body:**
-```json
-{
-  "session_id": "uuid",
-  "exercise_id": "uuid",
-  "feedback_type": "post_session",
-  "session_data": { ... }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "feedback": {
-    "id": "uuid",
-    "content": "Great workout! Your form improved throughout the session...",
-    "severity": "info",
-    "feedback_type": "post_session",
-    "timestamp": "2024-01-01T00:00:00Z"
-  }
-}
-```
 
 ### Text-to-Speech Endpoints
 
 #### POST `/api/tts/generate`
 Convert text to speech using ElevenLabs.
 
-**Request Body:**
-```json
-{
-  "text": "Keep your back straight",
-  "voice_id": "JBFqnCBsd6RMkjVDRZzb",
-  "session_id": "uuid",
-  "feedback_id": "uuid"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "audio_url": "data:audio/mp3;base64,base64_encoded_audio",
-  "voice_id": "JBFqnCBsd6RMkjVDRZzb",
-  "text_length": 20
-}
-```
-
 ### Workout Management Endpoints
 
-#### GET `/api/workouts`
-Get workouts for a user.
-
-**Query Parameters:**
-- `user_id`: Filter by user ID
-- `gym_id`: Filter by gym ID
-- `is_public`: Filter public workouts
-
-#### POST `/api/workouts`
-Create a new workout.
-
-**Request Body:**
-```json
-{
-  "name": "Upper Body Strength",
-  "description": "A comprehensive upper body workout",
-  "exercises": [
-    {
-      "exercise_id": "uuid",
-      "sets": 3,
-      "reps": 12,
-      "rest_seconds": 60
-    }
-  ],
-  "is_public": false,
-  "difficulty_level": 3,
-  "estimated_duration": 45
-}
-```
-
-#### GET `/api/workouts/[id]`
-Get a specific workout by ID.
-
-#### PUT `/api/workouts/[id]`
-Update a workout.
-
-#### DELETE `/api/workouts/[id]`
-Delete a workout.
+- `GET /api/workouts` - Get workouts
+- `POST /api/workouts` - Create workout
+- `GET /api/workouts/[id]` - Get specific workout
+- `PUT /api/workouts/[id]` - Update workout
+- `DELETE /api/workouts/[id]` - Delete workout
 
 ### Session Tracking Endpoints
 
-#### GET `/api/sessions`
-Get user's workout sessions.
-
-**Query Parameters:**
-- `status`: Filter by session status
-- `limit`: Number of sessions to return
-- `offset`: Pagination offset
-
-#### POST `/api/sessions`
-Start a new workout session.
-
-**Request Body:**
-```json
-{
-  "workout_id": "uuid",
-  "assignment_id": "uuid"
-}
-```
-
-#### GET `/api/sessions/[id]`
-Get a specific session by ID.
-
-#### PUT `/api/sessions/[id]`
-Update a session.
-
-#### DELETE `/api/sessions/[id]`
-Delete a session.
+- `GET /api/sessions` - Get user's workout sessions
+- `POST /api/sessions` - Start a new workout session
+- `GET /api/sessions/[id]` - Get specific session
+- `PUT /api/sessions/[id]` - Update session
+- `DELETE /api/sessions/[id]` - Delete session
 
 ### Exercise Management Endpoints
 
-#### GET `/api/exercises`
-Get exercises.
-
-**Query Parameters:**
-- `category`: Filter by exercise category
-- `difficulty_level`: Filter by difficulty
-- `search`: Search by name or description
-- `limit`: Number of exercises to return
-- `offset`: Pagination offset
-
-#### POST `/api/exercises`
-Create a new exercise.
-
-**Request Body:**
-```json
-{
-  "name": "Push-ups",
-  "description": "Classic bodyweight exercise",
-  "category": "strength",
-  "difficulty_level": 2,
-  "target_muscles": ["chest", "shoulders", "triceps"],
-  "instructions": "Start in plank position...",
-  "demo_video_url": "https://example.com/video.mp4",
-  "pose_keypoints": { ... }
-}
-```
+- `GET /api/exercises` - Get exercises
+- `POST /api/exercises` - Create exercise
 
 ## 🗄 Database Schema
 
@@ -340,49 +178,30 @@ All tables have Row Level Security (RLS) enabled for data protection.
    gcloud config set project your-project-id
    ```
 
-2. **Enable required APIs**
+2. **Deploy using the deployment script**
    ```bash
-   gcloud services enable cloudbuild.googleapis.com
-   gcloud services enable run.googleapis.com
+   # Set environment variables
+   export GOOGLE_CLOUD_PROJECT_ID=your-project-id
+   export GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
+
+   # Run deployment
+   npm run deploy
    ```
 
-3. **Build and deploy**
+3. **Manual deployment**
    ```bash
-   npm run build
-   gcloud builds submit --tag gcr.io/your-project-id/vibe-coach-backend
-   gcloud run deploy vibe-coach-backend \
-     --image gcr.io/your-project-id/vibe-coach-backend \
+   # Build and push Docker image
+   npm run docker:build
+   docker tag vibe-coach-app gcr.io/your-project-id/vibe-coach-app
+   docker push gcr.io/your-project-id/vibe-coach-app
+
+   # Deploy to Cloud Run
+   gcloud run deploy vibe-coach-app \
+     --image gcr.io/your-project-id/vibe-coach-app \
      --platform managed \
      --region us-central1 \
      --allow-unauthenticated
    ```
-
-4. **Set environment variables in Google Cloud Run**
-   - Go to Cloud Run console
-   - Select your service
-   - Go to "Edit & Deploy New Revision"
-   - Set all environment variables from your `.env.local`
-
-### Environment Variables for Production
-
-Make sure to set these in your production environment:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENAI_API_KEY`
-- `ELEVENLABS_API_KEY`
-- `NEXT_PUBLIC_APP_URL` (your production URL)
-- `NODE_ENV=production`
-- `ALLOWED_ORIGINS` (your frontend domains)
-
-## 🔒 Security
-
-- Row Level Security (RLS) enabled on all database tables
-- JWT-based authentication via Supabase
-- CORS configuration for allowed origins
-- Input validation on all API endpoints
-- Rate limiting (recommended for production)
 
 ## 🧪 Testing
 
@@ -395,6 +214,9 @@ npm run dev
 Test with tools like Postman or curl:
 
 ```bash
+# Test health endpoint
+curl http://localhost:3000/api/health
+
 # Test pose analysis
 curl -X POST http://localhost:3000/api/pose/analyze \
   -H "Content-Type: application/json" \
@@ -404,12 +226,24 @@ curl -X POST http://localhost:3000/api/pose/analyze \
   }'
 ```
 
-## 📝 API Rate Limits
+## 🔒 Security
 
-- OpenAI API: Follows OpenAI's rate limits
-- ElevenLabs API: Follows ElevenLabs' rate limits
-- Supabase: Follows Supabase's rate limits
-- Recommended: Implement rate limiting middleware for production
+- Row Level Security (RLS) enabled on all database tables
+- JWT-based authentication via Supabase
+- CORS configuration for allowed origins
+- Input validation on all API endpoints
+- Rate limiting (recommended for production)
+
+## 📝 Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run deploy` - Deploy to Google Cloud
+- `npm run docker:build` - Build Docker image
+- `npm run docker:run` - Run Docker container
+- `npm run health` - Test health endpoint
 
 ## 🤝 Contributing
 
@@ -432,14 +266,14 @@ For support and questions:
 3. Check environment variable configuration
 4. Ensure all required services are properly set up
 
-## 🔄 Frontend Integration
+## 🔄 Frontend-Backend Integration
 
-This backend is designed to work with a Next.js frontend. The frontend should:
+This full-stack application provides:
 
-1. Handle user authentication using Supabase Auth
-2. Capture video/pose data using WebRTC
-3. Send pose data to `/api/pose/analyze`
-4. Display real-time feedback and audio cues
-5. Manage workouts and sessions through the provided APIs
+1. **Frontend**: Modern React-based UI with real-time video capture
+2. **Backend**: Comprehensive API for pose analysis, AI feedback, and data management
+3. **Database**: Secure PostgreSQL database with real-time capabilities
+4. **AI Integration**: OpenAI for intelligent feedback and ElevenLabs for audio
+5. **Deployment**: Production-ready Google Cloud Platform deployment
 
-The backend provides all necessary APIs for a complete real-time AI fitness coaching experience.
+The application is designed to work seamlessly with both frontend and backend components running together, providing a complete real-time AI fitness coaching experience.
