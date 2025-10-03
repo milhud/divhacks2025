@@ -1,0 +1,44 @@
+{
+  "name": "vibe-coach-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "deploy": "chmod +x scripts/deploy.sh && ./scripts/deploy.sh",
+    "deploy:gcp": "gcloud builds submit --config cloudbuild.yaml",
+    "docker:build": "docker build -t vibe-coach-backend .",
+    "docker:run": "docker run -p 3000:3000 vibe-coach-backend",
+    "db:setup": "echo 'Run the SQL script in supabase/schema.sql in your Supabase dashboard'",
+    "health": "curl -f http://localhost:3000/api/health || echo 'Health check failed'"
+  },
+  "dependencies": {
+    "next": "15.1.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "openai": "^1.68.0",
+    "elevenlabs": "^0.2.7",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "formidable": "^3.5.1",
+    "sharp": "^0.33.0",
+    "@tensorflow/tfjs-node": "^4.17.0",
+    "@mediapipe/pose": "^0.5.1675469404",
+    "canvas": "^2.11.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/cors": "^2.8.17",
+    "@types/multer": "^1.4.11",
+    "@types/formidable": "^3.4.5",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "15.1.8"
+  }
+}
