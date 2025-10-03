@@ -13,7 +13,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { signUp, signIn } = useAuth()
+  const { signUp, signIn, isConfigured } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,6 +21,12 @@ export function AuthForm() {
     setError('')
 
     try {
+      if (!isConfigured) {
+        setError('Supabase not configured. Please add your credentials to .env.local')
+        setLoading(false)
+        return
+      }
+
       const { error } = isSignUp
         ? await signUp(email, password, fullName)
         : await signIn(email, password)
@@ -51,6 +57,14 @@ export function AuthForm() {
             {isSignUp ? 'Join Vibe Coach today' : 'Welcome back to Vibe Coach'}
           </p>
         </div>
+
+        {!isConfigured && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>Demo Mode:</strong> Add Supabase credentials to .env.local to enable real authentication.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignUp && (
@@ -107,7 +121,7 @@ export function AuthForm() {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading}
+            disabled={loading || !isConfigured}
           >
             {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
           </Button>

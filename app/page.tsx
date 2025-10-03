@@ -7,7 +7,7 @@ import Link from "next/link"
 import { useState } from "react"
 
 export default function Home() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, isConfigured } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
 
   return (
@@ -52,12 +52,36 @@ export default function Home() {
                 onClick={() => setShowAuth(true)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
-                Sign In
+                {isConfigured ? 'Sign In' : 'Demo Mode'}
               </button>
             )}
           </div>
         </div>
       </header>
+
+      {/* Configuration Banner */}
+      {!isConfigured && (
+        <div className="bg-yellow-50 border-b border-yellow-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <p className="text-sm text-yellow-800">
+                  <strong>Demo Mode:</strong> Add your Supabase credentials to .env.local to enable full functionality
+                </p>
+              </div>
+              <a 
+                href="#setup" 
+                className="text-sm text-yellow-800 hover:text-yellow-900 underline"
+              >
+                Setup Guide
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -77,22 +101,7 @@ export default function Home() {
           </div>
 
           {/* Video Upload Component */}
-          {user ? (
-            <VideoUpload />
-          ) : (
-            <div className="text-center py-12">
-              <h3 className="text-2xl font-bold mb-4 text-gray-900">Sign in to start your fitness journey</h3>
-              <p className="text-gray-600 mb-6">
-                Create an account to upload videos and get personalized AI feedback
-              </p>
-              <button 
-                onClick={() => setShowAuth(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                Get Started
-              </button>
-            </div>
-          )}
+          <VideoUpload />
 
           {/* Features */}
           <div className="grid md:grid-cols-3 gap-6 mt-16">
@@ -147,6 +156,62 @@ export default function Home() {
               </p>
             </div>
           </div>
+
+          {/* Setup Instructions */}
+          {!isConfigured && (
+            <div id="setup" className="mt-16 p-8 bg-white rounded-xl border border-gray-200">
+              <h3 className="text-2xl font-bold mb-6 text-gray-900">Backend Setup Instructions</h3>
+              
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-semibold mb-3 text-gray-900">1. Create .env.local file</h4>
+                  <p className="text-gray-600 mb-3">Create a file named <code className="bg-gray-100 px-2 py-1 rounded">.env.local</code> in your project root with these variables:</p>
+                  <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                    <div>NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url</div>
+                    <div>NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key</div>
+                    <div>SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key</div>
+                    <div>OPENAI_API_KEY=your_openai_api_key</div>
+                    <div>NEXTAUTH_SECRET=your_random_secret</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-3 text-gray-900">2. Get Supabase Credentials</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-gray-600">
+                    <li>Go to <a href="https://supabase.com" target="_blank" className="text-blue-600 hover:underline">supabase.com</a> and create a new project</li>
+                    <li>In your project dashboard, go to Settings → API</li>
+                    <li>Copy your Project URL and paste it as <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code></li>
+                    <li>Copy your anon/public key and paste it as <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code></li>
+                    <li>Copy your service_role key and paste it as <code className="bg-gray-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code></li>
+                  </ol>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-3 text-gray-900">3. Get OpenAI API Key</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-gray-600">
+                    <li>Go to <a href="https://platform.openai.com" target="_blank" className="text-blue-600 hover:underline">platform.openai.com</a></li>
+                    <li>Create an account and generate an API key</li>
+                    <li>Copy the key and paste it as <code className="bg-gray-100 px-1 rounded">OPENAI_API_KEY</code></li>
+                  </ol>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-3 text-gray-900">4. Set up Database</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-gray-600">
+                    <li>In your Supabase dashboard, go to SQL Editor</li>
+                    <li>Copy and run the contents of <code className="bg-gray-100 px-1 rounded">supabase/schema.sql</code></li>
+                    <li>Go to Storage and create a bucket called <code className="bg-gray-100 px-1 rounded">workout-videos</code></li>
+                  </ol>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-blue-800 text-sm">
+                    <strong>💡 Tip:</strong> Once you add the credentials and restart the dev server, you'll have full functionality including user authentication, real video analysis, and data persistence!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

@@ -3,16 +3,20 @@
 import React, { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { useAuth } from "@/lib/auth-context"
 
 export function VideoUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { isConfigured } = useAuth()
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith("video/")) {
       setSelectedFile(file)
+      setAnalysisResult(null) // Clear previous results
     } else {
       alert("Please select a valid video file")
     }
@@ -50,13 +54,37 @@ export function VideoUpload() {
     setIsUploading(true)
     
     try {
-      // Create form data for upload
+      if (!isConfigured) {
+        // Mock analysis when backend is not configured
+        await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate processing
+        
+        const mockResult = {
+          form_score: Math.floor(Math.random() * 30) + 70, // 70-100
+          rep_count: Math.floor(Math.random() * 10) + 5, // 5-15
+          feedback: "Great workout! Your form looks solid. Keep your back straight and maintain controlled movements. Consider adding more depth to your squats for better muscle engagement.",
+          keypoints: [
+            { name: 'nose', x: 0.5, y: 0.2, confidence: 0.95 },
+            { name: 'left_shoulder', x: 0.4, y: 0.3, confidence: 0.92 },
+            { name: 'right_shoulder', x: 0.6, y: 0.3, confidence: 0.91 },
+            { name: 'left_hip', x: 0.45, y: 0.6, confidence: 0.93 },
+            { name: 'right_hip', x: 0.55, y: 0.6, confidence: 0.94 },
+            { name: 'left_knee', x: 0.42, y: 0.8, confidence: 0.90 },
+            { name: 'right_knee', x: 0.58, y: 0.8, confidence: 0.91 },
+            { name: 'left_ankle', x: 0.4, y: 1.0, confidence: 0.86 },
+            { name: 'right_ankle', x: 0.6, y: 1.0, confidence: 0.88 }
+          ]
+        }
+        
+        setAnalysisResult(mockResult)
+        return
+      }
+
+      // Real backend integration when configured
       const formData = new FormData()
       formData.append('video', selectedFile)
-      formData.append('userId', 'temp-user-id') // In real app, get from auth
-      formData.append('workoutId', 'temp-workout-id') // In real app, get from selected workout
+      formData.append('userId', 'temp-user-id')
+      formData.append('workoutId', 'temp-workout-id')
 
-      // Upload video
       const uploadResponse = await fetch('/api/video/upload', {
         method: 'POST',
         body: formData,
@@ -68,7 +96,6 @@ export function VideoUpload() {
 
       const uploadData = await uploadResponse.json()
       
-      // Start pose analysis
       const analysisResponse = await fetch('/api/pose/analyze', {
         method: 'POST',
         headers: {
@@ -86,7 +113,6 @@ export function VideoUpload() {
 
       const analysisData = await analysisResponse.json()
       
-      // Generate AI feedback
       const feedbackResponse = await fetch('/api/feedback/generate', {
         method: 'POST',
         headers: {
@@ -105,7 +131,12 @@ export function VideoUpload() {
 
       const feedbackData = await feedbackResponse.json()
       
-      alert(`Analysis complete! Form Score: ${analysisData.analysis.form_score}%\n\nFeedback: ${feedbackData.feedback}`)
+      setAnalysisResult({
+        form_score: analysisData.analysis.form_score,
+        rep_count: analysisData.analysis.rep_count,
+        feedback: feedbackData.feedback,
+        keypoints: analysisData.analysis.keypoints
+      })
       
     } catch (error) {
       console.error('Upload error:', error)
@@ -238,7 +269,61 @@ export function VideoUpload() {
           )}
         </div>
 
-        {/* Info */}
+        {/* Analysis Results */}
+        {analysisResult && (
+          <div className="space-y-4 p-6 bg-green-50 border border-green-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-green-900">Analysis Complete!</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">{analysisResult.form_score}%</div>
+                <div className="text-sm text-green-700">Form Score</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">{analysisResult.rep_count}</div>
+                <div className="text-sm text-green-700">Reps Detected</div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-green-900 mb-2">AI Feedback:</h4>
+              <p className="text-green-800 text-sm leading-relaxed">{analysisResult.feedback}</p>
+            </div>
+
+            {!isConfigured && (
+              <div className="text-xs text-green-600 bg-green-100 p-2 rounded">
+                💡 This is a demo result. Configure your backend to get real analysis!
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Configuration Status */}
+        {!isConfigured && (
+          <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <svg
+              className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+            <div className="text-sm leading-relaxed">
+              <p className="font-medium text-yellow-900 mb-1">Backend Not Configured</p>
+              <p className="text-yellow-800">
+                Add your Supabase credentials to .env.local to enable real video analysis, user authentication, and data storage.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Pro Tip */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <svg
             className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
