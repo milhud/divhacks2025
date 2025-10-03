@@ -157,9 +157,10 @@ export default function Home() {
             </div>
           </div>
 
+
           {/* Setup Instructions */}
           {!isConfigured && (
-            <div id="setup" className="mt-16 p-8 bg-white rounded-xl border border-gray-200">
+            <div id="setup" className="mt-8 p-8 bg-white rounded-xl border border-gray-200">
               <h3 className="text-2xl font-bold mb-6 text-gray-900">Backend Setup Instructions</h3>
               
               <div className="space-y-6">
