@@ -11,7 +11,7 @@ export function VideoUpload() {
   const [isUploading, setIsUploading] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { isConfigured } = useAuth()
+  const { user } = useAuth()
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith("video/")) {
@@ -50,52 +50,33 @@ export function VideoUpload() {
 
   const handleUpload = async () => {
     if (!selectedFile) return
+    if (!user) {
+      alert("Please sign in to upload videos.")
+      return
+    }
 
     setIsUploading(true)
     
     try {
-      if (!isConfigured) {
-        // Mock analysis when backend is not configured
-        await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate processing
-        
-        const mockResult = {
-          form_score: Math.floor(Math.random() * 30) + 70, // 70-100
-          rep_count: Math.floor(Math.random() * 10) + 5, // 5-15
-          feedback: "Great workout! Your form looks solid. Keep your back straight and maintain controlled movements. Consider adding more depth to your squats for better muscle engagement.",
-          keypoints: [
-            { name: 'nose', x: 0.5, y: 0.2, confidence: 0.95 },
-            { name: 'left_shoulder', x: 0.4, y: 0.3, confidence: 0.92 },
-            { name: 'right_shoulder', x: 0.6, y: 0.3, confidence: 0.91 },
-            { name: 'left_hip', x: 0.45, y: 0.6, confidence: 0.93 },
-            { name: 'right_hip', x: 0.55, y: 0.6, confidence: 0.94 },
-            { name: 'left_knee', x: 0.42, y: 0.8, confidence: 0.90 },
-            { name: 'right_knee', x: 0.58, y: 0.8, confidence: 0.91 },
-            { name: 'left_ankle', x: 0.4, y: 1.0, confidence: 0.86 },
-            { name: 'right_ankle', x: 0.6, y: 1.0, confidence: 0.88 }
-          ]
-        }
-        
-        setAnalysisResult(mockResult)
-        return
-      }
-
-      // Real backend integration when configured
+      // Real backend integration
       const formData = new FormData()
       formData.append('video', selectedFile)
-      formData.append('userId', 'temp-user-id')
+      formData.append('userId', user.id)
       formData.append('workoutId', 'temp-workout-id')
 
+      // Upload video
       const uploadResponse = await fetch('/api/video/upload', {
         method: 'POST',
         body: formData,
       })
 
       if (!uploadResponse.ok) {
-        throw new Error('Upload failed')
+        throw new Error('Video upload failed')
       }
 
       const uploadData = await uploadResponse.json()
-      
+
+      // Start pose analysis
       const analysisResponse = await fetch('/api/pose/analyze', {
         method: 'POST',
         headers: {
@@ -108,11 +89,12 @@ export function VideoUpload() {
       })
 
       if (!analysisResponse.ok) {
-        throw new Error('Analysis failed')
+        throw new Error('Pose analysis failed')
       }
 
       const analysisData = await analysisResponse.json()
-      
+
+      // Generate AI feedback
       const feedbackResponse = await fetch('/api/feedback/generate', {
         method: 'POST',
         headers: {
@@ -126,21 +108,20 @@ export function VideoUpload() {
       })
 
       if (!feedbackResponse.ok) {
-        throw new Error('Feedback generation failed')
+        throw new Error('AI feedback generation failed')
       }
 
       const feedbackData = await feedbackResponse.json()
-      
+
       setAnalysisResult({
-        form_score: analysisData.analysis.form_score,
-        rep_count: analysisData.analysis.rep_count,
-        feedback: feedbackData.feedback,
-        keypoints: analysisData.analysis.keypoints
+        ...analysisData.analysis,
+        feedback: feedbackData.feedback
       })
-      
-    } catch (error) {
+      setSelectedFile(null)
+
+    } catch (error: any) {
       console.error('Upload error:', error)
-      alert('Upload failed. Please try again.')
+      alert(`Upload failed: ${error.message}`)
     } finally {
       setIsUploading(false)
     }
@@ -155,7 +136,7 @@ export function VideoUpload() {
   }
 
   return (
-    <Card className="p-8">
+    <Card className="p-8 bg-card border-border">
       <div className="space-y-6">
         {/* Upload Area */}
         <div
@@ -164,20 +145,14 @@ export function VideoUpload() {
           onDragLeave={handleDragLeave}
           className={`
             relative border-2 border-dashed rounded-xl p-12 text-center transition-all
-            ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400 hover:bg-gray-50"}
+            ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50"}
           `}
         >
-          <input 
-            ref={fileInputRef} 
-            type="file" 
-            accept="video/*" 
-            onChange={handleFileInputChange} 
-            className="hidden" 
-          />
+          <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileInputChange} className="hidden" />
 
           <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -191,15 +166,23 @@ export function VideoUpload() {
               <p className="text-lg font-semibold mb-1">
                 {selectedFile ? selectedFile.name : "Drop your workout video here"}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {selectedFile
                   ? `${formatFileSize(selectedFile.size)} • Ready to analyze`
-                  : "or click to browse • MP4, MOV, AVI up to 50MB"}
+                  : "or click to browse • MP4, MOV, AVI up to 500MB"}
               </p>
             </div>
 
             {!selectedFile && (
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-2">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"
+                  />
+                </svg>
                 Choose File
               </Button>
             )}
@@ -208,10 +191,10 @@ export function VideoUpload() {
 
         {/* Selected File Preview */}
         {selectedFile && (
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -222,7 +205,7 @@ export function VideoUpload() {
               </div>
               <div>
                 <p className="font-medium text-sm">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)}>
@@ -237,8 +220,8 @@ export function VideoUpload() {
         <div className="flex gap-3">
           <Button
             onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
-            className="flex-1"
+            disabled={!selectedFile || isUploading || !user}
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
             size="lg"
           >
             {isUploading ? (
@@ -271,54 +254,28 @@ export function VideoUpload() {
 
         {/* Analysis Results */}
         {analysisResult && (
-          <div className="space-y-4 p-6 bg-green-50 border border-green-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-green-900">Analysis Complete!</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{analysisResult.form_score}%</div>
+          <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-green-900">Analysis Complete!</h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{analysisResult.form_score}%</div>
                 <div className="text-sm text-green-700">Form Score</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{analysisResult.rep_count}</div>
-                <div className="text-sm text-green-700">Reps Detected</div>
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{analysisResult.rep_count}</div>
+                <div className="text-sm text-green-700">Reps Counted</div>
               </div>
             </div>
 
             <div>
               <h4 className="font-medium text-green-900 mb-2">AI Feedback:</h4>
               <p className="text-green-800 text-sm leading-relaxed">{analysisResult.feedback}</p>
-            </div>
-
-            {!isConfigured && (
-              <div className="text-xs text-green-600 bg-green-100 p-2 rounded">
-                💡 This is a demo result. Configure your backend to get real analysis!
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Configuration Status */}
-        {!isConfigured && (
-          <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <svg
-              className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-            <div className="text-sm leading-relaxed">
-              <p className="font-medium text-yellow-900 mb-1">Backend Not Configured</p>
-              <p className="text-yellow-800">
-                Add your Supabase credentials to .env.local to enable real video analysis, user authentication, and data storage.
-              </p>
             </div>
           </div>
         )}
@@ -340,7 +297,7 @@ export function VideoUpload() {
           </svg>
           <div className="text-sm leading-relaxed">
             <p className="font-medium text-blue-900 mb-1">Pro Tip</p>
-            <p className="text-blue-700">
+            <p className="text-blue-800">
               For best results, record your workout from the side with your full body visible. Good lighting and a
               stable camera position help our AI provide more accurate feedback.
             </p>

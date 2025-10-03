@@ -23,13 +23,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isConfigured, setIsConfigured] = useState(false)
 
   useEffect(() => {
-    setIsConfigured(isSupabaseConfigured())
+    setIsConfigured(true) // Always assume configured
     
-    if (!isSupabaseConfigured()) {
-      setLoading(false)
-      return
-    }
-
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -50,10 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    if (!isSupabaseConfigured()) {
-      return { error: { message: 'Supabase not configured. Please check your environment variables.' } }
-    }
-
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -67,10 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signIn = async (email: string, password: string) => {
-    if (!isSupabaseConfigured()) {
-      return { error: { message: 'Supabase not configured. Please check your environment variables.' } }
-    }
-
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -79,10 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    if (!isSupabaseConfigured()) {
-      return { error: { message: 'Supabase not configured. Please check your environment variables.' } }
-    }
-
     const { error } = await supabase.auth.signOut()
     return { error }
   }
