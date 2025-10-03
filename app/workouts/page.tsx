@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { AuthForm } from "@/components/auth-form"
 
 // Massive dictionary of workouts with YouTube videos
 const workouts = [
@@ -178,6 +180,8 @@ const allTags = ["All", ...Array.from(new Set(workouts.flatMap(w => w.tags))).so
 export default function WorkoutsPage() {
   const [selectedTag, setSelectedTag] = useState("All")
   const [activeWorkout, setActiveWorkout] = useState<typeof workouts[0] | null>(null)
+  const [showAuth, setShowAuth] = useState(false)
+  const { user, signOut } = useAuth()
 
   const filteredWorkouts = selectedTag === "All" 
     ? workouts 
@@ -192,32 +196,55 @@ export default function WorkoutsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">V</span>
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-2xl font-bold text-primary-foreground">V</span>
             </div>
-            <h1 className="text-2xl font-bold">
-              Vibe <span className="text-blue-600">Coach</span>
+            <h1 className="text-2xl font-bold text-balance">
+              Vibe <span className="text-primary">Coach</span>
             </h1>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Dashboard
             </Link>
-            <Link href="/workouts" className="text-sm text-gray-900 font-medium transition-colors">
+            <Link href="/workouts" className="text-sm text-foreground font-medium transition-colors">
               Workouts
             </Link>
-            <Link href="/progress" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/progress" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Progress
             </Link>
+            <Link href="/plans" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Plans
+            </Link>
+            <Link href="/wearable" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Wearable
+            </Link>
           </nav>
-          <Link href="/" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">
-            Back to Home
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">
+                Profile
+              </Link>
+              <button 
+                onClick={() => signOut()}
+                className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowAuth(true)}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </header>
 
@@ -226,8 +253,8 @@ export default function WorkoutsPage() {
         <div className="max-w-7xl mx-auto">
           {/* Page Header */}
           <div className="mb-8">
-            <h2 className="text-4xl font-bold mb-3 text-gray-900">Browse Workouts</h2>
-            <p className="text-lg text-gray-600">
+            <h2 className="text-4xl font-bold mb-3">Browse Workouts</h2>
+            <p className="text-lg text-muted-foreground">
               Choose a workout and start following along with the video
             </p>
           </div>
@@ -240,8 +267,8 @@ export default function WorkoutsPage() {
                 onClick={() => setSelectedTag(tag)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   tag === selectedTag 
-                    ? "bg-blue-600 text-white" 
-                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-card hover:bg-muted text-foreground"
                 }`}
               >
                 {tag}
@@ -254,30 +281,30 @@ export default function WorkoutsPage() {
             {filteredWorkouts.map((workout) => (
               <div
                 key={workout.id}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-blue-500 transition-colors group"
+                className="bg-card rounded-xl border border-border overflow-hidden hover:border-primary/50 transition-colors group"
               >
-                <div className="relative h-48 overflow-hidden bg-gray-900">
+                <div className="relative h-48 overflow-hidden">
                   <img
                     src={`https://img.youtube.com/vi/${workout.videoId}/maxresdefault.jpg`}
                     alt={workout.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                  <div className="absolute top-3 right-3 px-3 py-1 bg-background/90 backdrop-blur-sm rounded-full text-xs font-medium">
                     {workout.difficulty}
                   </div>
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {workout.tags.map(tag => (
-                      <span key={tag} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                      <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded">
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-gray-900">{workout.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4 leading-relaxed">{workout.description}</p>
+                  <h3 className="text-xl font-bold mb-2">{workout.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{workout.description}</p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
@@ -290,7 +317,7 @@ export default function WorkoutsPage() {
                     </div>
                     <button 
                       onClick={() => handleStart(workout)}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
                     >
                       Start
                     </button>
@@ -357,7 +384,7 @@ export default function WorkoutsPage() {
 
                 <div className="flex gap-2 flex-wrap">
                   {activeWorkout.tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                    <span key={tag} className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
                       {tag}
                     </span>
                   ))}
@@ -369,13 +396,28 @@ export default function WorkoutsPage() {
       )}
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
+      <footer className="border-t border-border mt-16">
         <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-muted-foreground">
             © 2025 Vibe Coach. AI-powered fitness coaching for everyone.
           </p>
         </div>
       </footer>
+
+      {/* Authentication Modal */}
+      {showAuth && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="relative my-8">
+            <button
+              onClick={() => setShowAuth(false)}
+              className="absolute -top-4 -right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-lg z-10 text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+            <AuthForm />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

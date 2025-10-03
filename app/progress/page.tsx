@@ -1,4 +1,9 @@
+"use client"
+
 import Link from "next/link"
+import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { AuthForm } from "@/components/auth-form"
 
 const recentSessions = [
   {
@@ -43,6 +48,9 @@ const stats = [
 ]
 
 export default function ProgressPage() {
+  const [showAuth, setShowAuth] = useState(false)
+  const { user, signOut } = useAuth()
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -66,10 +74,33 @@ export default function ProgressPage() {
             <Link href="/progress" className="text-sm text-foreground font-medium transition-colors">
               Progress
             </Link>
+            <Link href="/plans" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Plans
+            </Link>
+            <Link href="/wearable" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Wearable
+            </Link>
           </nav>
-          <button className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors">
-            Sign In
-          </button>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">
+                Profile
+              </Link>
+              <button 
+                onClick={() => signOut()}
+                className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowAuth(true)}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </header>
 
@@ -190,6 +221,21 @@ export default function ProgressPage() {
           </p>
         </div>
       </footer>
+
+      {/* Authentication Modal */}
+      {showAuth && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="relative my-8">
+            <button
+              onClick={() => setShowAuth(false)}
+              className="absolute -top-4 -right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-lg z-10 text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+            <AuthForm />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

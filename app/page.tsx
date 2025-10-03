@@ -11,57 +11,61 @@ export default function Home() {
   const [showAuth, setShowAuth] = useState(false)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">V</span>
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Vibe <span className="text-blue-600">Coach</span>
-              </h1>
-            </Link>
+      <header className="border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-2xl font-bold text-primary-foreground">V</span>
+            </div>
+            <h1 className="text-2xl font-bold text-balance">
+              Vibe <span className="text-primary">Coach</span>
+            </h1>
+          </Link>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/" className="text-sm text-foreground font-medium transition-colors">
                 Dashboard
               </Link>
-              <Link href="/workouts" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/workouts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Workouts
               </Link>
-              <Link href="/progress" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/progress" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Progress
               </Link>
+              <Link href="/plans" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Plans
+              </Link>
+              <Link href="/wearable" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Wearable
+              </Link>
             </nav>
-            {user ? (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">
-                  Welcome, {user.user_metadata?.full_name || user.email}
-                </span>
-                <button 
-                  onClick={() => signOut()}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
-            ) : (
+          {user ? (
+            <div className="flex items-center gap-4">
+              <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">
+                Profile
+              </Link>
               <button 
-                onClick={() => setShowAuth(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                onClick={() => signOut()}
+                className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors"
               >
-                Sign In
+                Sign Out
               </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowAuth(true)}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </header>
 
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-1 container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
@@ -139,9 +143,9 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-center text-sm text-gray-600">
+      <footer className="border-t border-border mt-16">
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center text-sm text-muted-foreground">
             © 2025 Vibe Coach. AI-powered fitness coaching for everyone.
           </p>
         </div>
