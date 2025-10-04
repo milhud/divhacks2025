@@ -83,6 +83,13 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
   const [adaptiveThresholds, setAdaptiveThresholds] = useState<{down: number, up: number} | null>(null)
   const calibrationStartRef = useRef(0)
   
+  // Simple state machine for rep counting
+  const [bicepState, setBicepState] = useState<'extended' | 'contracted'>('extended') // Start extended
+  const [squatState, setSquatState] = useState<'standing' | 'squatting'>('standing') // Start standing
+  
+  // Bandaid: prevent reps in first 3 seconds
+  const [pageStartTime] = useState(Date.now())
+  
   // Voice feedback
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const lastVoiceFeedbackRef = useRef(0)
@@ -438,47 +445,57 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     // Generate basic feedback only
     const feedbackParts = generateBasicFeedback(angles, exerciseName, primaryAngle, currentRepState)
 
-    // SIMPLE REP COUNTING - call increment function when perfect form detected
+    // SIMPLE REP COUNTING - state machine approach
     if (exerciseName === 'bicep_curl') {
       const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      const timeSincePageStart = (now - pageStartTime) / 1000
+      
+      // Bandaid: no reps in first 5 seconds
+      if (timeSincePageStart < 5) {
+        console.log(`💪 [BICEP] Page just started, no reps yet (${timeSincePageStart.toFixed(1)}s)`)
+        return
+      }
       
       // Check for perfect contraction in EITHER arm
       const leftPerfect = feedbackParts.includes('💪 Perfect left arm contraction!')
       const rightPerfect = feedbackParts.includes('💪 Perfect right arm contraction!')
       const anyPerfect = leftPerfect || rightPerfect
       
-      console.log(`💪 [BICEP] Current reps: ${repCount}, TimeSince: ${timeSinceLastRep.toFixed(1)}s, Perfect: ${anyPerfect}`)
+      // Check if arms are extended (elbow angle > 100 degrees)
+      const leftExtended = angles.leftElbow > 100
+      const rightExtended = angles.rightElbow > 100
+      const anyExtended = leftExtended || rightExtended
       
-      if (anyPerfect && timeSinceLastRep > 1.0) { // 1 second cooldown
-        // CALL INCREMENT FUNCTION
+      console.log(`💪 [BICEP] State: ${bicepState}, Perfect: ${anyPerfect}, Extended: ${anyExtended}, TimeSince: ${timeSinceLastRep.toFixed(1)}s`)
+      
+      // Simple: count rep when perfect contraction, with 4 second delay
+      if (anyPerfect && timeSinceLastRep > 4.0) { // 4 second delay between reps
         incrementRep()
         lastRepTimeRef.current = now
+        console.log(`🎉 [BICEP] Rep counted! (4s delay)`)
       }
     } else if (exerciseName === 'squat') {
       const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      const timeSincePageStart = (now - pageStartTime) / 1000
       
-      // Debug: Show all feedback messages for squats
-      console.log(`🏋️ [SQUAT] All feedback: ${feedbackParts.join(' | ')}`)
+      // Bandaid: no reps in first 5 seconds
+      if (timeSincePageStart < 5) {
+        console.log(`🏋️ [SQUAT] Page just started, no reps yet (${timeSincePageStart.toFixed(1)}s)`)
+        return
+      }
       
-      // Check for perfect squat depth and stability
-      const perfectDepth = feedbackParts.includes('💎 Perfect depth!')
-      const goodForm = feedbackParts.includes('✅ Good form') || feedbackParts.includes('💎 Perfect depth!')
-      const stableBody = !feedbackParts.some(feedback => 
-        feedback.includes('⚠️') || feedback.includes('❌') || feedback.includes('swaying') || feedback.includes('leaning')
-      )
-      
-      console.log(`🏋️ [SQUAT] Current reps: ${repCount}, TimeSince: ${timeSinceLastRep.toFixed(1)}s, PerfectDepth: ${perfectDepth}, GoodForm: ${goodForm}, Stable: ${stableBody}`)
-      
-      // Simplified: just check if knee angle is low enough (below 90 degrees)
+      // Check if squatting down (knee angle < 90 degrees)
       const kneeAngle = (angles.leftKnee + angles.rightKnee) / 2
       const lowEnough = kneeAngle < 90
+      const standingUp = kneeAngle > 120
       
-      console.log(`🏋️ [SQUAT] Knee angle: ${Math.round(kneeAngle)}°, Low enough: ${lowEnough}`)
+      console.log(`🏋️ [SQUAT] State: ${squatState}, Knee: ${Math.round(kneeAngle)}°, Low: ${lowEnough}, Standing: ${standingUp}, TimeSince: ${timeSinceLastRep.toFixed(1)}s`)
       
-      if (lowEnough && timeSinceLastRep > 1.0) { // 1 second cooldown
-        // CALL INCREMENT FUNCTION
+      // Simple: count rep when squatting down, with 4 second delay
+      if (lowEnough && timeSinceLastRep > 4.0) { // 4 second delay between reps
         incrementRep()
         lastRepTimeRef.current = now
+        console.log(`🎉 [SQUAT] Rep counted! (4s delay)`)
       }
     }
 
