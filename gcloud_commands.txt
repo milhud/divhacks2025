@@ -1,0 +1,35 @@
+# Update system & install Node.js
+sudo apt update
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs python3 python3-pip
+sudo npm install -g pm2
+
+# Clone your repo
+git clone https://github.com/your-username/divhacks2025.git
+cd divhacks2025
+
+# Install dependencies
+npm install
+pip3 install -r python/requirements.txt
+
+# Set environment variables
+nano .env.local
+# Add your Supabase and OpenAI keys
+
+# Build and start
+npm run build
+pm2 start npm --name "vibe-coach" -- start
+sudo ufw allow 3000
+
+# Get your URL
+curl -s ifconfig.me
+# Visit: http://YOUR-IP:3000
+
+# Create firewall rule in Google Cloud
+gcloud compute firewall-rules create allow-node-app \
+    --allow tcp:3000 \
+    --source-ranges 0.0.0.0/0 \
+    --description "Allow incoming traffic on port 3000"
+
+# delete
+gcloud compute firewall-rules delete allow-node-app
