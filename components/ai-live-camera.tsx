@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
@@ -45,6 +45,24 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [repCount, setRepCount] = useState(0)
+  
+  // Simple rep increment function - can be called from anywhere
+  const incrementRep = useCallback(() => {
+    setRepCount(prev => {
+      const newCount = prev + 1
+      console.log(`🎉 [REP INCREMENT] #${newCount}`)
+      speakFeedback(`${newCount}`, 'high')
+      return newCount
+    })
+  }, [])
+
+  // Expose increment function globally for Python to call
+  useEffect(() => {
+    (window as any).incrementRep = incrementRep
+    return () => {
+      delete (window as any).incrementRep
+    }
+  }, [incrementRep])
   const [formScore, setFormScore] = useState(0)
   const [mediapipeLoaded, setMediapipeLoaded] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState(exerciseType || 'squat')
@@ -281,12 +299,16 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     let primaryAngle = 160
     const exerciseName = selectedExercise.toLowerCase()
     
+    console.log(`🏋️ [EXERCISE] Selected: ${selectedExercise}, ExerciseName: ${exerciseName}`)
+    
     if (exerciseName === 'squat') {
       // For squats, use average knee angle
       primaryAngle = (angles.leftKnee + angles.rightKnee) / 2
+      console.log(`🏋️ [SQUAT] Primary angle: ${Math.round(primaryAngle)}°`)
     } else if (exerciseName === 'bicep_curl') {
       // For bicep curls, use RIGHT elbow angle specifically
       primaryAngle = angles.rightElbow
+      console.log(`💪 [BICEP] Primary angle: ${Math.round(primaryAngle)}°`)
     } else if (exerciseName.includes('push') || exerciseName.includes('arm')) {
       primaryAngle = (angles.leftElbow + angles.rightElbow) / 2
     } else {
@@ -416,17 +438,21 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     // Generate basic feedback only
     const feedbackParts = generateBasicFeedback(angles, exerciseName, primaryAngle, currentRepState)
 
-    // Check for bicep curl perfect contraction AFTER feedback is generated
-    if (exerciseName === 'bicep_curl' && feedbackParts.includes('💪 Perfect right arm contraction!')) {
-      if (repState !== 'down' && timeSinceLastRep > 0.5) {
-        // REP COUNTED! (Perfect contraction detected)
-        currentRepCount = repCount + 1
-        currentRepState = 'down'
-        setRepState('down')
-        setRepCount(currentRepCount)
+    // SIMPLE BICEP CURL REP COUNTING - just call increment function
+    if (exerciseName === 'bicep_curl') {
+      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      
+      // Check for perfect contraction in EITHER arm
+      const leftPerfect = feedbackParts.includes('💪 Perfect left arm contraction!')
+      const rightPerfect = feedbackParts.includes('💪 Perfect right arm contraction!')
+      const anyPerfect = leftPerfect || rightPerfect
+      
+      console.log(`💪 [BICEP] Current reps: ${repCount}, TimeSince: ${timeSinceLastRep.toFixed(1)}s, Perfect: ${anyPerfect}`)
+      
+      if (anyPerfect && timeSinceLastRep > 1.0) { // 1 second cooldown
+        // CALL INCREMENT FUNCTION
+        incrementRep()
         lastRepTimeRef.current = now
-        console.log(`🎉 [BICEP REP] #${currentRepCount} - Perfect contraction detected!`)
-        speakFeedback(`${currentRepCount}`, 'high')
       }
     }
 
@@ -481,6 +507,24 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
       const rightElbowAngle = angles.rightElbow
       const rightShoulderAngle = angles.rightShoulder
       
+      // Left arm feedback
+      const leftElbowAngle = angles.leftElbow
+      if (leftElbowAngle < 50) {
+        feedbackParts.push('💪 Perfect left arm contraction!')
+      } else if (leftElbowAngle < 70) {
+        feedbackParts.push('✅ Good left arm squeeze')
+      } else if (leftElbowAngle < 100) {
+        feedbackParts.push('📏 Squeeze left arm harder')
+        speakFeedback('Squeeze your left bicep')
+      } else if (leftElbowAngle < 130) {
+        feedbackParts.push('⚠️ Incomplete left arm range')
+        speakFeedback('Full left arm contraction needed')
+      } else {
+        feedbackParts.push('❌ Left arm too extended')
+        speakFeedback('Contract your left bicep')
+      }
+      
+      // Right arm feedback
       if (rightElbowAngle < 50) {
         feedbackParts.push('💪 Perfect right arm contraction!')
       } else if (rightElbowAngle < 70) {
@@ -496,9 +540,16 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
         speakFeedback('Contract your right bicep')
       }
       
-      // Right shoulder stability check
-      const shoulderMovement = Math.abs(rightShoulderAngle - (analysis?.angles?.rightShoulder || rightShoulderAngle))
-      if (shoulderMovement > 15) {
+      // Shoulder stability check for both arms
+      const leftShoulderAngle = angles.leftShoulder
+      const leftShoulderMovement = Math.abs(leftShoulderAngle - (analysis?.angles?.leftShoulder || leftShoulderAngle))
+      const rightShoulderMovement = Math.abs(rightShoulderAngle - (analysis?.angles?.rightShoulder || rightShoulderAngle))
+      
+      if (leftShoulderMovement > 15) {
+        feedbackParts.push('⚠️ Left shoulder moving')
+        speakFeedback('Keep left shoulder still')
+      }
+      if (rightShoulderMovement > 15) {
         feedbackParts.push('⚠️ Right shoulder moving')
         speakFeedback('Keep right shoulder still')
       }
@@ -763,10 +814,8 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
                 </Button>
                 <Button 
                   onClick={() => {
-                    const newCount = repCount + 1
-                    setRepCount(newCount)
-                    speakFeedback(`${newCount}`, 'high')
-                    console.log(`🧪 [TEST] Manual rep count: ${newCount}`)
+                    console.log(`🧪 [TEST] Manual rep increment`)
+                    incrementRep()
                   }}
                   className="bg-pink-600 hover:bg-pink-700"
                 >
@@ -798,15 +847,15 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
             <div className="flex gap-2">
               <button
                 onClick={() => {
+                  console.log('🔄 [EXERCISE] Clicking Squat button...')
                   setSelectedExercise('squat')
                   // Reset calibration when switching exercises
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
-                  setRepCount(0)
                   setRepState(null)
                   lastRepTimeRef.current = 0
-                  console.log('🔄 [EXERCISE] Switched to Squat - resetting calibration')
+                  console.log('✅ [EXERCISE] Switched to Squat - resetting calibration')
                 }}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   selectedExercise === 'squat'
@@ -818,13 +867,12 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
               </button>
               <button
                 onClick={() => {
-                  console.log('🔄 [EXERCISE] Switching to Bicep Curl...')
+                  console.log('🔄 [EXERCISE] Clicking Bicep Curl button...')
                   setSelectedExercise('bicep_curl')
                   // Reset calibration when switching exercises
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
-                  setRepCount(0)
                   setRepState(null)
                   lastRepTimeRef.current = 0
                   setAdaptiveThresholds(null)
