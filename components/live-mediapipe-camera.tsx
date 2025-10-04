@@ -19,6 +19,23 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
   const [formScore, setFormScore] = useState(0)
   const [mediapipeLoaded, setMediapipeLoaded] = useState(false)
   
+  // Rep counting state machine (Good-GYM approach)
+  const [repState, setRepState] = useState<'up' | 'down' | null>(null)
+  const [angleHistory, setAngleHistory] = useState<number[]>([])
+  const lastRepTimeRef = useRef(0)
+  const [currentAngle, setCurrentAngle] = useState(0)
+  
+  // Calibration for adaptive thresholds
+  const [isCalibrating, setIsCalibrating] = useState(true)
+  const [calibrationAngles, setCalibrationAngles] = useState<number[]>([])
+  const [adaptiveThresholds, setAdaptiveThresholds] = useState<{down: number, up: number} | null>(null)
+  const calibrationStartRef = useRef(0)
+  
+  // Voice feedback
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const lastVoiceFeedbackRef = useRef(0)
+  const lastVoiceMessageRef = useRef('')
+  
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -168,26 +185,278 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
     animationFrameRef.current = requestAnimationFrame(processFrame)
   }
 
+  // Helper: Calculate angle between 3 points
+  const calculateAngle = (a: any, b: any, c: any): number => {
+    const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x)
+    let angle = Math.abs(radians * 180.0 / Math.PI)
+    if (angle > 180.0) angle = 360 - angle
+    return angle
+  }
+
   const onPoseResults = (results: any) => {
-    if (!results.poseLandmarks) {
-      return
+    if (!results.poseLandmarks) return
+
+    const landmarks = results.poseLandmarks
+    drawSkeleton(landmarks)
+
+    // Calculate ALL joint angles
+    let angles = {
+      leftKnee: 0,
+      rightKnee: 0,
+      leftElbow: 0,
+      rightElbow: 0,
+      leftHip: 0,
+      rightHip: 0,
+      leftShoulder: 0,
+      rightShoulder: 0
     }
 
-    // Draw skeleton EVERY frame
-    drawSkeleton(results.poseLandmarks)
+    try {
+      // Knee angles (hip-knee-ankle)
+      angles.leftKnee = calculateAngle(landmarks[23], landmarks[25], landmarks[27])
+      angles.rightKnee = calculateAngle(landmarks[24], landmarks[26], landmarks[28])
+      
+      // Elbow angles (shoulder-elbow-wrist)
+      angles.leftElbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15])
+      angles.rightElbow = calculateAngle(landmarks[12], landmarks[14], landmarks[16])
+      
+      // Hip angles (shoulder-hip-knee)
+      angles.leftHip = calculateAngle(landmarks[11], landmarks[23], landmarks[25])
+      angles.rightHip = calculateAngle(landmarks[12], landmarks[24], landmarks[26])
+      
+      // Shoulder angles (hip-shoulder-elbow)
+      angles.leftShoulder = calculateAngle(landmarks[23], landmarks[11], landmarks[13])
+      angles.rightShoulder = calculateAngle(landmarks[24], landmarks[12], landmarks[14])
+    } catch (e) {
+      console.error('Angle calculation error:', e)
+    }
 
-    // Calculate form score
-    const score = calculateFormScore(results.poseLandmarks)
+    // Pick primary angle based on exercise
+    let primaryAngle = 160
+    const exerciseName = (exerciseType || 'general').toLowerCase()
+    
+    if (exerciseName.includes('squat') || exerciseName.includes('knee')) {
+      primaryAngle = (angles.leftKnee + angles.rightKnee) / 2
+    } else if (exerciseName.includes('push') || exerciseName.includes('arm')) {
+      primaryAngle = (angles.leftElbow + angles.rightElbow) / 2
+    } else {
+      primaryAngle = (angles.leftKnee + angles.rightKnee) / 2
+    }
+
+    setCurrentAngle(Math.round(primaryAngle))
+
+    // Update angle history with median filtering (Good-GYM approach)
+    const newHistory = [...angleHistory, primaryAngle].slice(-5)
+    setAngleHistory(newHistory)
+    
+    // Calculate smoothed angle with outlier removal
+    let smoothAngle = primaryAngle
+    if (newHistory.length >= 3) {
+      const sortedAngles = [...newHistory].sort((a, b) => a - b)
+      const median = sortedAngles[Math.floor(sortedAngles.length / 2)]
+      const mean = newHistory.reduce((a, b) => a + b) / newHistory.length
+      const stdDev = Math.sqrt(newHistory.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / newHistory.length)
+      
+      // Filter outliers (> 2 std dev from median)
+      const filtered = newHistory.filter(a => Math.abs(a - median) <= 2 * stdDev)
+      smoothAngle = filtered.length > 0 ? filtered.reduce((a, b) => a + b) / filtered.length : primaryAngle
+    }
+    
+    console.log(`📐 [ANGLES] Primary: ${Math.round(primaryAngle)}°, Smoothed: ${Math.round(smoothAngle)}°`)
+
+    // REP COUNTING with FIXED adaptive thresholds (declare variables first)
+    let currentRepCount = repCount
+    let currentRepState = repState
+    
+    // CALIBRATION PHASE (Good-GYM approach: collect data first, then set thresholds)
+    const now = Date.now()
+    
+    if (isCalibrating) {
+      if (calibrationStartRef.current === 0) {
+        calibrationStartRef.current = now
+        console.log(`🎯 [CALIBRATION] Starting 3-second calibration... Move through your full range!`)
+      }
+      
+      const calibrationTime = (now - calibrationStartRef.current) / 1000
+      setCalibrationAngles(prev => [...prev, smoothAngle])
+      
+      if (calibrationTime >= 3.0 && calibrationAngles.length >= 10) {
+        // Calculate adaptive thresholds from ALL collected data
+        const minAngle = Math.min(...calibrationAngles)
+        const maxAngle = Math.max(...calibrationAngles)
+        const range = maxAngle - minAngle
+        
+        if (range > 20) {
+          const downThreshold = minAngle + (range * 0.4)
+          const upThreshold = minAngle + (range * 0.6)
+          
+          setAdaptiveThresholds({ down: downThreshold, up: upThreshold })
+          setIsCalibrating(false)
+          
+          console.log(`✅ [CALIBRATION COMPLETE]`)
+          console.log(`   Range: ${Math.round(minAngle)}° - ${Math.round(maxAngle)}° (${Math.round(range)}°)`)
+          console.log(`   Thresholds: DOWN < ${Math.round(downThreshold)}°, UP > ${Math.round(upThreshold)}°`)
+          console.log(`   Ready to count reps!`)
+        } else {
+          console.log(`⏳ [CALIBRATION] Range: ${Math.round(range)}° - keep moving! (need >20°)`)
+        }
+      } else {
+        console.log(`⏳ [CALIBRATION] ${calibrationTime.toFixed(1)}s / 3.0s (${calibrationAngles.length} samples)`)
+      }
+    }
+    
+    if (!isCalibrating && adaptiveThresholds && newHistory.length >= 3) {
+      const { down: downThreshold, up: upThreshold } = adaptiveThresholds
+      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+
+      console.log(`[COUNT] Angle: ${Math.round(smoothAngle)}°, State: ${repState}, Down<${Math.round(downThreshold)}°, Up>${Math.round(upThreshold)}°`)
+
+      // Good-GYM state machine with voice feedback
+      if (smoothAngle > upThreshold) {
+        if (repState !== 'up') {
+          currentRepState = 'up'
+          setRepState('up')
+          console.log(`⬆️ [STATE] UP (angle: ${Math.round(smoothAngle)}° > ${Math.round(upThreshold)}°)`)
+        }
+      } else if (smoothAngle < downThreshold) {
+        if (repState === 'up' && timeSinceLastRep > 0.5) {
+          // REP COUNTED!
+          currentRepState = 'down'
+          currentRepCount = repCount + 1
+          setRepState('down')
+          setRepCount(currentRepCount)
+          lastRepTimeRef.current = now
+          console.log(`🎉 [REP] #${currentRepCount} at ${Math.round(smoothAngle)}° < ${Math.round(downThreshold)}° (gap: ${timeSinceLastRep.toFixed(1)}s)`)
+          
+          // Voice feedback for rep
+          speakFeedback(`${currentRepCount}`, 'high')
+        } else if (repState === 'up') {
+          console.log(`⏸️ [BLOCKED] Too soon! ${timeSinceLastRep.toFixed(1)}s < 0.5s`)
+        } else {
+          if (repState !== 'down') {
+            currentRepState = 'down'
+            setRepState('down')
+            console.log(`⬇️ [STATE] DOWN (angle: ${Math.round(smoothAngle)}° < ${Math.round(downThreshold)}°)`)
+          }
+        }
+      }
+    }
+
+    // Form score
+    const score = calculateFormScore(landmarks)
     setFormScore(score)
 
-    // Update analysis
+    // Generate DETAILED feedback with SPECIFIC voice coaching
+    let feedbackParts = []
+    
+    // Detailed posture analysis
+    const leftShoulder = landmarks[11]
+    const rightShoulder = landmarks[12]
+    const leftHip = landmarks[23]
+    const rightHip = landmarks[24]
+    
+    const shoulderTilt = Math.abs(leftShoulder.y - rightShoulder.y)
+    const hipTilt = Math.abs(leftHip.y - rightHip.y)
+    
+    // Exercise-specific REAL coaching
+    if (exerciseName.includes('squat')) {
+      // Depth coaching - SIMPLIFIED TRIGGERS
+      if (primaryAngle < 90) {
+        feedbackParts.push('💎 Perfect depth!')
+        speakFeedback('Perfect depth')
+      } else if (primaryAngle < 100) {
+        feedbackParts.push('✅ Good depth')
+      } else if (primaryAngle < 120) {
+        feedbackParts.push('📏 Almost there')
+        speakFeedback('Go lower')
+      } else if (primaryAngle < 140) {
+        feedbackParts.push('⚠️ Too high')
+        speakFeedback('Break parallel')
+      } else {
+        feedbackParts.push('❌ Way too shallow')
+        speakFeedback('Drop lower')
+      }
+      
+      // Knee alignment - SPECIFIC coaching
+      const kneeDiff = Math.abs(angles.leftKnee - angles.rightKnee)
+      if (kneeDiff > 20) {
+        feedbackParts.push('🚨 Knees very uneven!')
+        speakFeedback('Push evenly through both feet', 'high')
+      } else if (kneeDiff > 15) {
+        feedbackParts.push('⚠️ Uneven knees')
+        speakFeedback('Balance your weight')
+      }
+      
+      // Posture check
+      if (shoulderTilt > 0.08) {
+        feedbackParts.push('🚨 Shoulder leaning!')
+        speakFeedback('Level your shoulders', 'high')
+      }
+      
+      // Hip positioning
+      const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2
+      const avgHipY = (leftHip.y + rightHip.y) / 2
+      if (Math.abs(avgShoulderY - avgHipY) < 0.15) {
+        feedbackParts.push('📐 Chest up!')
+        speakFeedback('Keep chest up, shoulders back')
+      }
+      
+    } else if (exerciseName.includes('push')) {
+      // Push-up specific
+      if (primaryAngle < 90) {
+        feedbackParts.push('💪 Full ROM!')
+      } else if (primaryAngle < 100) {
+        feedbackParts.push('✅ Good depth')
+      } else if (primaryAngle < 120) {
+        feedbackParts.push('📏 Lower chest')
+        if (currentRepState === 'down') speakFeedback('Chest to ground')
+      } else {
+        feedbackParts.push('❌ Too high')
+        if (currentRepState === 'down') speakFeedback('Drop your chest lower')
+      }
+      
+      const elbowDiff = Math.abs(angles.leftElbow - angles.rightElbow)
+      if (elbowDiff > 15) {
+        feedbackParts.push('⚠️ Uneven arms')
+        speakFeedback('Press evenly')
+      }
+    } else {
+      // General movement feedback
+      feedbackParts.push(`${Math.round(primaryAngle)}° angle`)
+    }
+
+    // Form score with specific cues
+    if (score < 70) {
+      feedbackParts.push('❌ Form needs work')
+    } else if (score < 80) {
+      feedbackParts.push('⚠️ Watch form')
+    } else if (score < 90) {
+      feedbackParts.push('✅ Good form')
+    } else {
+      feedbackParts.push('🌟 Excellent!')
+    }
+
+    // State feedback
+    if (currentRepState === 'up') feedbackParts.push('⬆️ UP')
+    else if (currentRepState === 'down') feedbackParts.push('⬇️ DOWN')
+    
+    // Rep milestones with motivation
+    if (currentRepCount > 0 && currentRepCount % 10 === 0 && currentRepState === 'up') {
+      speakFeedback(`${currentRepCount} reps, you're crushing it!`, 'high')
+    } else if (currentRepCount > 0 && currentRepCount % 5 === 0 && currentRepState === 'up') {
+      speakFeedback(`${currentRepCount}, nice work`, 'high')
+    }
+
     const newAnalysis = {
       timestamp: new Date().toISOString(),
       exerciseType: exerciseType || 'General',
       formScore: score,
-      repCount: repCount,
-      keypoints: results.poseLandmarks,
-      feedback: generateFeedback(score)
+      repCount: currentRepCount,  // Use LOCAL value, not state
+      currentAngle: Math.round(primaryAngle),
+      angles: angles,  // Include all angles
+      repState: currentRepState,  // Use LOCAL value, not state
+      keypoints: landmarks,
+      feedback: feedbackParts.join(' • ')
     }
 
     setAnalysis(newAnalysis)
@@ -291,16 +560,64 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
     return Math.max(60, Math.min(100, score))
   }
 
-  const generateFeedback = (score: number): string => {
-    if (score >= 90) return "Excellent form! Keep it up!"
-    if (score >= 80) return "Good form. Minor adjustments needed."
-    if (score >= 70) return "Form needs improvement. Focus on alignment."
-    return "Pay attention to your posture and alignment."
+
+  // Voice feedback function
+  const speakFeedback = (message: string, priority: 'high' | 'normal' = 'normal') => {
+    console.log(`[VOICE CALLED] "${message}", enabled: ${voiceEnabled}`)
+    
+    if (!voiceEnabled) {
+      console.log('[VOICE BLOCKED] Voice disabled')
+      return
+    }
+    
+    const now = Date.now()
+    const cooldown = priority === 'high' ? 1500 : 3000
+    
+    // Check cooldown first
+    if (now - lastVoiceFeedbackRef.current < cooldown) {
+      console.log(`[VOICE BLOCKED] Cooldown (${now - lastVoiceFeedbackRef.current}ms < ${cooldown}ms)`)
+      return
+    }
+    
+    // Only avoid EXACT same message within short time window (500ms)
+    const shortWindow = 500
+    if (lastVoiceMessageRef.current === message && (now - lastVoiceFeedbackRef.current < shortWindow)) {
+      console.log('[VOICE BLOCKED] Same message too soon')
+      return
+    }
+    
+    try {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel()
+      
+      const utterance = new SpeechSynthesisUtterance(message)
+      utterance.rate = 1.1
+      utterance.pitch = 1.0
+      utterance.volume = 1.0
+      
+      utterance.onstart = () => console.log(`🔊 [SPEAKING] "${message}"`)
+      utterance.onerror = (e) => console.error('[VOICE ERROR]', e)
+      
+      window.speechSynthesis.speak(utterance)
+      lastVoiceFeedbackRef.current = now
+      lastVoiceMessageRef.current = message
+      
+      console.log(`✅ [VOICE QUEUED] "${message}" (priority: ${priority})`)
+    } catch (err) {
+      console.error('[VOICE ERROR]', err)
+    }
+  }
+  
+  // Test voice function
+  const testVoice = () => {
+    console.log('[TEST] Testing voice...')
+    speakFeedback('Voice test working', 'high')
   }
 
   useEffect(() => {
     return () => {
       stopCamera()
+      window.speechSynthesis.cancel()
     }
   }, [])
 
@@ -321,9 +638,23 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
                 {mediapipeLoaded ? 'Start Camera' : 'Loading MediaPipe...'}
               </Button>
             ) : (
-              <Button onClick={stopCamera} className="bg-red-600 hover:bg-red-700">
-                Stop Camera
-              </Button>
+              <>
+                <Button onClick={stopCamera} className="bg-red-600 hover:bg-red-700">
+                  Stop Camera
+                </Button>
+                <Button 
+                  onClick={() => setVoiceEnabled(!voiceEnabled)}
+                  className={voiceEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'}
+                >
+                  {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
+                </Button>
+                <Button 
+                  onClick={testVoice}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  🎤 Test Voice
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -375,22 +706,65 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
 
         {/* Real-time Stats */}
         {analysis && isStreaming && (
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-lg text-white">
-              <div className="text-sm font-medium opacity-90">Form Score</div>
-              <div className="text-3xl font-bold">{formScore}%</div>
+          <>
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-lg text-white">
+                <div className="text-xs font-medium opacity-90">Form Score</div>
+                <div className="text-2xl font-bold">{formScore}%</div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-lg text-white">
+                <div className="text-xs font-medium opacity-90">Reps</div>
+                <div className="text-2xl font-bold">{repCount}</div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-lg text-white">
+                <div className="text-xs font-medium opacity-90">Primary Angle</div>
+                <div className="text-2xl font-bold">{currentAngle}°</div>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-3 rounded-lg text-white">
+                <div className="text-xs font-medium opacity-90">State</div>
+                <div className="text-xl font-bold">{repState === 'up' ? '⬆️ UP' : repState === 'down' ? '⬇️ DOWN' : '—'}</div>
+              </div>
             </div>
-            
-            <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-lg text-white">
-              <div className="text-sm font-medium opacity-90">Rep Count</div>
-              <div className="text-3xl font-bold">{repCount}</div>
+
+            {/* All Joint Angles Display */}
+            <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">L Knee</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.leftKnee) : 0}°</div>
+              </div>
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">R Knee</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.rightKnee) : 0}°</div>
+              </div>
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">L Elbow</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.leftElbow) : 0}°</div>
+              </div>
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">R Elbow</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.rightElbow) : 0}°</div>
+              </div>
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">L Hip</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.leftHip) : 0}°</div>
+              </div>
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">R Hip</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.rightHip) : 0}°</div>
+              </div>
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">L Shoulder</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.leftShoulder) : 0}°</div>
+              </div>
+              <div className="bg-gray-100 p-2 rounded text-center">
+                <div className="text-xs text-gray-600">R Shoulder</div>
+                <div className="text-lg font-bold text-gray-900">{analysis.angles ? Math.round(analysis.angles.rightShoulder) : 0}°</div>
+              </div>
             </div>
-            
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-lg text-white">
-              <div className="text-sm font-medium opacity-90">Status</div>
-              <div className="text-lg font-bold">Analyzing</div>
-            </div>
-          </div>
+          </>
         )}
 
         {/* Live Feedback */}
