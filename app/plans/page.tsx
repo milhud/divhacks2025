@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthForm } from "@/components/auth-form"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { Header } from "@/components/header"
 
 const workoutPlans = [
   {
@@ -134,10 +135,14 @@ export default function PlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<any>(null)
   const [userIssues, setUserIssues] = useState("")
   const [aiRecommendation, setAiRecommendation] = useState("")
+  const [isLoadingRecommendation, setIsLoadingRecommendation] = useState(false)
   const { user, signOut } = useAuth()
 
   const generateAIRecommendation = async () => {
     if (!userIssues.trim()) return
+
+    setIsLoadingRecommendation(true)
+    setAiRecommendation("")
 
     try {
       const response = await fetch('/api/ai/recommend-plan', {
@@ -162,61 +167,14 @@ export default function PlansPage() {
       }
     } catch (error) {
       setAiRecommendation("Based on your issues, I recommend starting with our Beginner Weight Loss program. Focus on building consistent habits and gradually increasing intensity. Consider adding our Clean Eating meal plan to support your goals.")
+    } finally {
+      setIsLoadingRecommendation(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">V</span>
-            </div>
-            <h1 className="text-2xl font-bold text-balance">
-              Vibe <span className="text-primary">Coach</span>
-            </h1>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
-            </Link>
-            <Link href="/workouts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Workouts
-            </Link>
-            <Link href="/progress" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Progress
-            </Link>
-            <Link href="/plans" className="text-sm text-foreground font-medium transition-colors">
-              Plans
-            </Link>
-            <Link href="/wearable" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Wearable
-            </Link>
-          </nav>
-          {user ? (
-            <div className="flex items-center gap-4">
-              <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">
-                Profile
-              </Link>
-              <button 
-                onClick={() => signOut()}
-                className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setShowAuth(true)}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
-            >
-              Sign In
-            </button>
-          )}
-        </div>
-      </header>
+      <Header currentPage="plans" onShowAuth={() => setShowAuth(true)} />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
@@ -250,9 +208,17 @@ export default function PlansPage() {
               
               <button
                 onClick={generateAIRecommendation}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                disabled={isLoadingRecommendation}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
               >
-                Get AI Recommendation
+                {isLoadingRecommendation ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Generating...
+                  </>
+                ) : (
+                  'Get AI Recommendation'
+                )}
               </button>
               
               {aiRecommendation && (

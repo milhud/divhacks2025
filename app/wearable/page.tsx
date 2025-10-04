@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthForm } from "@/components/auth-form"
+import { Header } from "@/components/header"
 
 const supportedDevices = [
   {
@@ -135,56 +136,7 @@ export default function WearablePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">V</span>
-            </div>
-            <h1 className="text-2xl font-bold text-balance">
-              Vibe <span className="text-primary">Coach</span>
-            </h1>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
-            </Link>
-            <Link href="/workouts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Workouts
-            </Link>
-            <Link href="/progress" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Progress
-            </Link>
-            <Link href="/plans" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Plans
-            </Link>
-            <Link href="/wearable" className="text-sm text-foreground font-medium transition-colors">
-              Wearable
-            </Link>
-          </nav>
-          {user ? (
-            <div className="flex items-center gap-4">
-              <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">
-                Profile
-              </Link>
-              <button 
-                onClick={() => signOut()}
-                className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setShowAuth(true)}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
-            >
-              Sign In
-            </button>
-          )}
-        </div>
-      </header>
+      <Header onShowAuth={() => setShowAuth(true)} />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">

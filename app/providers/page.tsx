@@ -49,6 +49,7 @@ export default function ProvidersPage() {
   const [activeTab, setActiveTab] = useState<'patients' | 'exercises' | 'monitoring' | 'reports'>('patients')
   const [showPainInput, setShowPainInput] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [showLogin, setShowLogin] = useState(true)
 
@@ -174,21 +175,27 @@ export default function ProvidersPage() {
     setLoginForm({ email: '', password: '' })
   }
 
-  const handleExerciseAssign = (exerciseId: string, patientId: string) => {
-    const exercise = exercises.find(e => e.id === exerciseId)
-    if (exercise) {
-      setPatients(prev => prev.map(patient => 
-        patient.id === patientId 
-          ? { 
-              ...patient, 
-              assignedExercises: [...patient.assignedExercises, { ...exercise, isAssigned: true }]
-            }
-          : patient
-      ))
-      
-      // Show success message
-      alert(`Exercise "${exercise.name}" assigned to patient successfully!`)
+  const handleExerciseAssign = () => {
+    if (!selectedExercise || !selectedPatient) {
+      alert('Please select both an exercise and a patient')
+      return
     }
+
+    setPatients(prev => prev.map(patient => 
+      patient.id === selectedPatient.id 
+        ? { 
+            ...patient, 
+            assignedExercises: [...patient.assignedExercises, { ...selectedExercise, isAssigned: true }]
+          }
+        : patient
+    ))
+    
+    // Show success message
+    alert(`Exercise "${selectedExercise.name}" assigned to ${selectedPatient.name} successfully!`)
+    
+    // Reset selections
+    setSelectedExercise(null)
+    setSelectedPatient(null)
   }
 
   const handlePatientCodeEnter = (patientId: string, code: string) => {
@@ -281,17 +288,12 @@ export default function ProvidersPage() {
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold text-blue-900 mb-2">Demo Credentials</h3>
-            <p className="text-sm text-blue-800">
-              <strong>Email:</strong> sarah.wilson@demorehab.com<br/>
-              <strong>Password:</strong> DemoProvider123!<br/>
-              <em>Or use any email/password for demo purposes</em>
-            </p>
-          </div>
 
-          <div className="mt-4 text-center">
-            <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
+          <div className="mt-6 text-center space-y-2">
+            <Link href="/providers/signup" className="block text-sm text-blue-600 hover:text-blue-800">
+              Don't have an account? Sign up as a provider
+            </Link>
+            <Link href="/" className="block text-sm text-gray-600 hover:text-gray-800">
               ← Back to Home
             </Link>
           </div>
@@ -378,9 +380,20 @@ export default function ProvidersPage() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full" 
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          patient.progress >= 80 ? 'bg-green-500' :
+                          patient.progress >= 60 ? 'bg-blue-500' :
+                          patient.progress >= 40 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
                         style={{ width: `${patient.progress}%` }}
                       ></div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {patient.progress >= 80 ? 'Excellent Progress' :
+                       patient.progress >= 60 ? 'Good Progress' :
+                       patient.progress >= 40 ? 'Moderate Progress' :
+                       'Needs Improvement'}
                     </div>
                   </div>
 
@@ -407,35 +420,9 @@ export default function ProvidersPage() {
                       </Button>
                     </div>
                     
-                    {/* Patient Code Input */}
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Enter patient code"
-                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            const code = (e.target as HTMLInputElement).value
-                            handlePatientCodeEnter(patient.id, code)
-                            ;(e.target as HTMLInputElement).value = ''
-                          }
-                        }}
-                      />
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          const input = document.querySelector(`input[placeholder="Enter patient code"]`) as HTMLInputElement
-                          if (input) {
-                            handlePatientCodeEnter(patient.id, input.value)
-                            input.value = ''
-                          }
-                        }}
-                      >
-                        Submit
-                      </Button>
+                    <div className="text-xs text-gray-500">
+                      Provider Code: DEMO001
                     </div>
-                    <p className="text-xs text-gray-500">Try code: DEMO001</p>
                   </div>
                 </Card>
               ))}
@@ -450,6 +437,51 @@ export default function ProvidersPage() {
               <h2 className="text-2xl font-bold">Exercise Library</h2>
               <Button>Add New Exercise</Button>
             </div>
+
+            {/* Assignment Interface */}
+            <Card className="p-6 bg-blue-50">
+              <h3 className="text-lg font-semibold mb-4">Assign Exercise to Patient</h3>
+              <div className="flex gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">Select Exercise</label>
+                  <select 
+                    value={selectedExercise?.id || ''} 
+                    onChange={(e) => {
+                      const exercise = exercises.find(ex => ex.id === e.target.value)
+                      setSelectedExercise(exercise || null)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="">Choose an exercise...</option>
+                    {exercises.map(exercise => (
+                      <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">Select Patient</label>
+                  <select 
+                    value={selectedPatient?.id || ''} 
+                    onChange={(e) => {
+                      const patient = patients.find(p => p.id === e.target.value)
+                      setSelectedPatient(patient || null)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="">Choose a patient...</option>
+                    {patients.map(patient => (
+                      <option key={patient.id} value={patient.id}>{patient.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <Button 
+                  onClick={handleExerciseAssign}
+                  disabled={!selectedExercise || !selectedPatient}
+                >
+                  Assign Exercise
+                </Button>
+              </div>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {exercises.map(exercise => (
@@ -491,10 +523,9 @@ export default function ProvidersPage() {
                     <Button 
                       size="sm" 
                       className="flex-1"
-                      onClick={() => selectedPatient && handleExerciseAssign(exercise.id, selectedPatient.id)}
-                      disabled={!selectedPatient}
+                      onClick={() => setSelectedExercise(exercise)}
                     >
-                      Assign to Patient
+                      Select for Assignment
                     </Button>
                     <Button size="sm" variant="outline">
                       Preview

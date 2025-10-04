@@ -1,7 +1,228 @@
 #!/usr/bin/env python3
 """
-Wearable Device Integration for Vibe Coach
-Supports Apple Watch, Fitbit, Garmin, and other fitness trackers
+================================================================================
+WEARABLE DEVICE INTEGRATION FOR VIBE COACH REHABILITATION PLATFORM
+================================================================================
+
+PURPOSE:
+This module provides comprehensive integration with various wearable devices
+for the Vibe Coach rehabilitation platform. It processes health and fitness
+data from multiple sources to provide holistic movement analysis and
+rehabilitation progress tracking.
+
+SUPPORTED WEARABLE DEVICES:
+==========================
+APPLE WATCH:
+- Data Sources: HealthKit, Apple Health app exports
+- Supported Metrics: Heart rate, steps, active calories, exercise minutes, VO2 max
+- Data Formats: JSON export from Health app, HealthKit API integration
+- Integration: Direct HealthKit API access, CSV export processing
+- Real-time: Live data streaming via HealthKit framework
+- Historical: Bulk data export and processing
+
+FITBIT DEVICES:
+- Data Sources: Fitbit API, Fitbit app exports, CSV downloads
+- Supported Metrics: Heart rate, steps, floors, active minutes, sleep data
+- Data Formats: JSON API responses, CSV exports, XML data
+- Integration: OAuth 2.0 API authentication, webhook subscriptions
+- Real-time: Live data streaming via Fitbit Web API
+- Historical: Bulk data export and processing
+
+GARMIN DEVICES:
+- Data Sources: Garmin Connect API, Garmin Express exports
+- Supported Metrics: Heart rate, steps, intensity minutes, VO2 max, stress
+- Data Formats: JSON API responses, TCX files, FIT files, CSV exports
+- Integration: OAuth 2.0 API authentication, file upload processing
+- Real-time: Live data streaming via Garmin Connect IQ
+- Historical: Bulk data export and processing
+
+SAMSUNG HEALTH:
+- Data Sources: Samsung Health app, Samsung Health API
+- Supported Metrics: Heart rate, steps, active calories, sleep, stress
+- Data Formats: JSON API responses, CSV exports, Samsung Health data
+- Integration: Samsung Health SDK, OAuth 2.0 API authentication
+- Real-time: Live data streaming via Samsung Health platform
+- Historical: Bulk data export and processing
+
+GOOGLE FIT:
+- Data Sources: Google Fit API, Google Fit app exports
+- Supported Metrics: Heart rate, steps, active calories, exercise data
+- Data Formats: JSON API responses, Google Fit data types
+- Integration: Google Fit API, OAuth 2.0 authentication
+- Real-time: Live data streaming via Google Fit platform
+- Historical: Bulk data export and processing
+
+INPUT SPECIFICATIONS:
+====================
+
+FILE INPUT REQUIREMENTS:
+- Supported formats: JSON, CSV, XML, TCX, FIT files
+- File size: Maximum 100MB per file
+- Encoding: UTF-8 for text files, binary for FIT/TCX files
+- Structure: Device-specific data schemas and formats
+- Validation: Automatic format detection and validation
+
+API INPUT REQUIREMENTS:
+- Authentication: OAuth 2.0 for all supported platforms
+- Rate limits: Platform-specific rate limiting (typically 100-1000 requests/hour)
+- Data scope: User consent for health data access
+- Real-time: Webhook subscriptions for live data updates
+- Historical: Bulk data retrieval with date range filtering
+
+DATA PROCESSING PIPELINE:
+========================
+
+STEP 1: DATA INGESTION & VALIDATION
+- Detect file format and device type automatically
+- Validate data structure and required fields
+- Check data integrity and completeness
+- Handle corrupted or incomplete data gracefully
+- Log validation results and warnings
+
+STEP 2: DATA NORMALIZATION & STANDARDIZATION
+- Convert device-specific formats to standardized schema
+- Normalize units of measurement (metric/imperial)
+- Align timestamps across different time zones
+- Standardize data types and value ranges
+- Handle missing or null values appropriately
+
+STEP 3: HEALTH METRICS EXTRACTION
+- Extract heart rate data (resting, active, recovery)
+- Process step count and activity metrics
+- Calculate calories burned and energy expenditure
+- Analyze sleep patterns and quality metrics
+- Extract exercise-specific data and performance metrics
+
+STEP 4: REHABILITATION-SPECIFIC ANALYSIS
+- Correlate wearable data with movement analysis
+- Identify patterns in heart rate variability
+- Analyze recovery metrics and stress indicators
+- Track progress in rehabilitation exercises
+- Detect potential health concerns or anomalies
+
+STEP 5: DATA AGGREGATION & INSIGHTS
+- Combine wearable data with pose analysis results
+- Generate comprehensive health and fitness reports
+- Create personalized recommendations and insights
+- Track long-term progress and trends
+- Provide actionable feedback for rehabilitation
+
+OUTPUT FORMAT SPECIFICATIONS:
+============================
+
+STANDARDIZED HEALTH DATA STRUCTURE:
+{
+    "device_info": {
+        "device_type": "string",                    # Type of wearable device
+        "device_model": "string",                   # Specific device model
+        "firmware_version": "string",               # Device firmware version
+        "last_sync": "ISO 8601 datetime",           # Last data sync timestamp
+        "data_source": "string"                     # Source of data (API, file, etc.)
+    },
+    "heart_rate_data": {
+        "resting_hr": "float",                      # Resting heart rate (BPM)
+        "max_hr": "float",                          # Maximum heart rate (BPM)
+        "avg_hr": "float",                          # Average heart rate (BPM)
+        "hr_variability": "float",                  # Heart rate variability (ms)
+        "hr_zones": {                               # Heart rate zones
+            "zone_1": "float",                      # Zone 1 (50-60% max HR)
+            "zone_2": "float",                      # Zone 2 (60-70% max HR)
+            "zone_3": "float",                      # Zone 3 (70-80% max HR)
+            "zone_4": "float",                      # Zone 4 (80-90% max HR)
+            "zone_5": "float"                       # Zone 5 (90-100% max HR)
+        },
+        "recovery_hr": "float"                      # Recovery heart rate (BPM)
+    },
+    "activity_data": {
+        "steps": "integer",                         # Total steps taken
+        "active_minutes": "integer",                # Minutes of active exercise
+        "calories_burned": "float",                 # Calories burned (kcal)
+        "distance": "float",                        # Distance traveled (km)
+        "floors_climbed": "integer",                # Floors climbed
+        "intensity_minutes": "integer"              # High-intensity minutes
+    },
+    "sleep_data": {
+        "total_sleep": "float",                     # Total sleep time (hours)
+        "deep_sleep": "float",                      # Deep sleep time (hours)
+        "light_sleep": "float",                     # Light sleep time (hours)
+        "rem_sleep": "float",                       # REM sleep time (hours)
+        "sleep_efficiency": "float",                # Sleep efficiency (0-100%)
+        "sleep_score": "float"                      # Overall sleep score (0-100)
+    },
+    "exercise_data": {
+        "workout_sessions": [                       # Individual workout sessions
+            {
+                "start_time": "ISO 8601 datetime",  # Workout start time
+                "duration": "float",                # Workout duration (minutes)
+                "exercise_type": "string",          # Type of exercise
+                "avg_hr": "float",                  # Average heart rate
+                "max_hr": "float",                  # Maximum heart rate
+                "calories_burned": "float",         # Calories burned
+                "intensity": "string"               # Workout intensity level
+            }
+        ],
+        "vo2_max": "float",                         # VO2 max estimate
+        "fitness_age": "integer",                   # Estimated fitness age
+        "recovery_time": "float"                    # Recovery time (hours)
+    },
+    "stress_data": {
+        "stress_level": "float",                    # Stress level (0-100)
+        "stress_score": "float",                    # Stress score (0-100)
+        "stress_events": "integer",                 # Number of stress events
+        "relaxation_time": "float"                  # Relaxation time (minutes)
+    },
+    "rehabilitation_metrics": {
+        "movement_quality": "float",                # Movement quality score (0-100)
+        "pain_correlation": "float",                # Correlation with pain levels
+        "recovery_progress": "float",               # Recovery progress (0-100)
+        "compliance_score": "float",                # Exercise compliance (0-100)
+        "improvement_areas": ["string"]             # Areas needing improvement
+    },
+    "technical_metrics": {
+        "processing_time": "float",                 # Processing time (seconds)
+        "data_quality": "float",                    # Data quality score (0-1)
+        "completeness": "float",                    # Data completeness (0-1)
+        "accuracy": "float",                        # Data accuracy estimate (0-1)
+        "warnings": ["string"]                      # Processing warnings
+    }
+}
+
+PERFORMANCE REQUIREMENTS:
+========================
+- Processing time: < 30 seconds for 1 month of data
+- Memory usage: < 500MB during processing
+- Accuracy: > 95% data extraction accuracy
+- Reliability: 99%+ successful processing rate
+- Scalability: Support for multiple concurrent users
+
+ERROR HANDLING:
+==============
+- Graceful degradation for unsupported data formats
+- Fallback processing for partial data
+- Comprehensive error logging and reporting
+- Data validation and integrity checks
+- Recovery from processing failures
+
+INTEGRATION REQUIREMENTS:
+========================
+- Next.js frontend integration via API endpoints
+- Real-time data synchronization capabilities
+- HIPAA-compliant data handling and storage
+- Secure authentication and authorization
+- Scalable architecture for multiple users
+
+SECURITY CONSIDERATIONS:
+=======================
+- Encrypted data transmission and storage
+- User consent and privacy protection
+- Secure API key management
+- Data anonymization for analytics
+- Compliance with health data regulations
+
+AUTHOR: Vibe Coach Development Team
+VERSION: 2.0.0
+LAST UPDATED: January 2025
+================================================================================
 """
 
 import json

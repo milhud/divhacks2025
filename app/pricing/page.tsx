@@ -157,7 +157,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-2xl font-bold text-primary-foreground">V</span>
@@ -177,9 +177,9 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
             Choose Your <span className="text-blue-600">Perfect Plan</span>
           </h1>
@@ -214,61 +214,63 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-16">
           {pricingTiers.map((tier) => (
             <Card 
               key={tier.id} 
-              className={`relative p-8 ${
+              className={`relative flex flex-col h-full ${
                 tier.popular 
-                  ? 'ring-2 ring-blue-500 shadow-lg scale-105' 
+                  ? 'ring-2 ring-blue-500 shadow-lg' 
                   : 'shadow-md hover:shadow-lg transition-shadow'
               }`}
             >
               {tier.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
                   <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
                     Most Popular
                   </span>
                 </div>
               )}
 
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
-                <p className="text-gray-600 text-sm mb-4">{tier.description}</p>
-                
-                <div className="mb-4">
-                  <span className="text-4xl font-bold">
-                    ${billingCycle === 'yearly' ? tier.price.yearly : tier.price.monthly}
-                  </span>
-                  <span className="text-gray-600 ml-1">
-                    /{billingCycle === 'yearly' ? 'year' : 'month'}
-                  </span>
+              <div className="p-6 flex flex-col h-full">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
+                  <p className="text-gray-600 text-sm mb-4">{tier.description}</p>
+                  
+                  <div className="mb-4">
+                    <span className="text-4xl font-bold">
+                      ${billingCycle === 'yearly' ? tier.price.yearly : tier.price.monthly}
+                    </span>
+                    <span className="text-gray-600 ml-1">
+                      /{billingCycle === 'yearly' ? 'year' : 'month'}
+                    </span>
+                  </div>
+
+                  {billingCycle === 'yearly' && (
+                    <div className="text-sm text-green-600 font-medium mb-4">
+                      Save ${(tier.price.monthly * 12) - tier.price.yearly} per year
+                    </div>
+                  )}
                 </div>
 
-                {billingCycle === 'yearly' && (
-                  <div className="text-sm text-green-600 font-medium mb-4">
-                    Save ${(tier.price.monthly * 12) - tier.price.yearly} per year
-                  </div>
-                )}
+                <ul className="space-y-3 mb-8 flex-grow">
+                  {tier.features.map((feature, index) => (
+                    <li key={index} className="flex items-start">
+                      <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-sm text-gray-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button 
+                  className={`${getButtonClasses(tier.color, tier.popular)} h-12 w-full`}
+                  size="lg"
+                >
+                  {tier.cta}
+                </Button>
               </div>
-
-              <ul className="space-y-3 mb-8">
-                {tier.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
-                    <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm text-gray-700">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Button 
-                className={getButtonClasses(tier.color, tier.popular)}
-                size="lg"
-              >
-                {tier.cta}
-              </Button>
             </Card>
           ))}
         </div>
@@ -277,16 +279,16 @@ export default function PricingPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-16">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">Enterprise Solutions</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Need something custom? We work with large healthcare systems, 
               insurance companies, and enterprise clients to create tailored solutions.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
             <div>
-              <h3 className="text-xl font-semibold mb-4">Enterprise Features</h3>
-              <ul className="space-y-3">
+              <h3 className="text-xl font-semibold mb-6">Enterprise Features</h3>
+              <ul className="space-y-4">
                 {enterpriseFeatures.map((feature, index) => (
                   <li key={index} className="flex items-start">
                     <svg className="w-5 h-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -305,10 +307,10 @@ export default function PricingPage() {
                 get a custom quote.
               </p>
               <div className="space-y-3">
-                <Button size="lg" className="w-full">
+                <Button size="lg" className="w-full h-12">
                   Contact Enterprise Sales
                 </Button>
-                <Button variant="outline" size="lg" className="w-full">
+                <Button variant="outline" size="lg" className="w-full h-12">
                   Schedule Demo
                 </Button>
               </div>
@@ -318,31 +320,31 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Frequently Asked Questions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Can I change plans anytime?</h3>
+          <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-3">Can I change plans anytime?</h3>
               <p className="text-gray-600">
                 Yes, you can upgrade or downgrade your plan at any time. Changes take effect 
                 immediately, and we'll prorate any billing differences.
               </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Is there a free trial?</h3>
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-3">Is there a free trial?</h3>
               <p className="text-gray-600">
                 All plans come with a 14-day free trial. No credit card required to start, 
                 and you can cancel anytime during the trial period.
               </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">What about HIPAA compliance?</h3>
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-3">What about HIPAA compliance?</h3>
               <p className="text-gray-600">
                 Our Provider and Clinic plans are fully HIPAA compliant with BAA agreements 
                 available. We use enterprise-grade security and encryption.
               </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Do you offer discounts?</h3>
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-3">Do you offer discounts?</h3>
               <p className="text-gray-600">
                 Yes! We offer 20% off annual plans, student discounts, and special pricing 
                 for non-profit organizations. Contact us for details.
@@ -354,15 +356,15 @@ export default function PricingPage() {
         {/* CTA Section */}
         <div className="bg-blue-600 rounded-2xl p-12 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-xl mb-8 opacity-90">
+          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
             Join thousands of users who are already improving their fitness and recovery 
             with Vibe Coach's AI-powered platform.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
+            <Button size="lg" variant="secondary" className="h-12">
               Start Free Trial
             </Button>
-            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
+            <Button size="lg" variant="outline" className="h-12 text-white border-white hover:bg-white hover:text-blue-600">
               Schedule Demo
             </Button>
           </div>

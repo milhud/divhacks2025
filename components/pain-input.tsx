@@ -113,7 +113,15 @@ export function PainInput({ onPainSubmit, onMovementHurt }: PainInputProps) {
         {/* Pain Level */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">
-            Pain Level (0-10): {currentPain.level}
+            Pain Level (0-10): <span className={`font-bold ${
+              currentPain.level === 0 ? 'text-green-600' :
+              currentPain.level <= 3 ? 'text-yellow-500' :
+              currentPain.level <= 6 ? 'text-orange-500' :
+              currentPain.level <= 8 ? 'text-red-500' :
+              'text-red-700'
+            }`}>
+              {currentPain.level}
+            </span>
           </label>
           <input
             type="range"
@@ -122,11 +130,24 @@ export function PainInput({ onPainSubmit, onMovementHurt }: PainInputProps) {
             value={currentPain.level}
             onChange={(e) => setCurrentPain(prev => ({ ...prev, level: parseInt(e.target.value) }))}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, 
+                #10b981 0%, 
+                #10b981 30%, 
+                #f59e0b 30%, 
+                #f59e0b 60%, 
+                #f97316 60%, 
+                #f97316 80%, 
+                #ef4444 80%, 
+                #ef4444 100%)`
+            }}
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>No Pain</span>
-            <span>Moderate</span>
-            <span>Severe</span>
+            <span className={currentPain.level === 0 ? 'font-bold text-green-600' : ''}>No Pain</span>
+            <span className={currentPain.level <= 3 ? 'font-bold text-yellow-500' : ''}>Mild</span>
+            <span className={currentPain.level <= 6 ? 'font-bold text-orange-500' : ''}>Moderate</span>
+            <span className={currentPain.level <= 8 ? 'font-bold text-red-500' : ''}>Severe</span>
+            <span className={currentPain.level > 8 ? 'font-bold text-red-700' : ''}>Unbearable</span>
           </div>
         </div>
 
@@ -223,7 +244,15 @@ export function PainInput({ onPainSubmit, onMovementHurt }: PainInputProps) {
         {/* Pain Level for Movement */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">
-            Pain Level during this movement (0-10): {movementHurt.painLevel}
+            Pain Level during this movement (0-10): <span className={`font-bold ${
+              movementHurt.painLevel === 0 ? 'text-green-600' :
+              movementHurt.painLevel <= 3 ? 'text-yellow-500' :
+              movementHurt.painLevel <= 6 ? 'text-orange-500' :
+              movementHurt.painLevel <= 8 ? 'text-red-500' :
+              'text-red-700'
+            }`}>
+              {movementHurt.painLevel}
+            </span>
           </label>
           <input
             type="range"
@@ -232,6 +261,17 @@ export function PainInput({ onPainSubmit, onMovementHurt }: PainInputProps) {
             value={movementHurt.painLevel}
             onChange={(e) => setMovementHurt(prev => ({ ...prev, painLevel: parseInt(e.target.value) }))}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, 
+                #10b981 0%, 
+                #10b981 30%, 
+                #f59e0b 30%, 
+                #f59e0b 60%, 
+                #f97316 60%, 
+                #f97316 80%, 
+                #ef4444 80%, 
+                #ef4444 100%)`
+            }}
           />
         </div>
 
