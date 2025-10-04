@@ -1,15 +1,15 @@
-# Vibe Coach - AI Fitness Assistant
+# Vibe Coach - AI Fitness & Rehabilitation Assistant
 
-A real-time AI workout assistant that uses computer vision and LLM-powered feedback to improve exercise form and support rehabilitation.
+A comprehensive AI-powered platform that uses advanced computer vision and machine learning to provide real-time movement analysis, pain assessment, and personalized fitness and rehabilitation programs for users and healthcare providers.
 
 ## 🚀 Features
 
-- **Real-time Pose Detection**: Advanced pose analysis using TensorFlow.js
-- **AI-Powered Feedback**: Personalized coaching with OpenAI integration
-- **Video Upload & Analysis**: Upload workout videos for detailed form analysis
-- **Progress Tracking**: Track your improvement over time
-- **User Authentication**: Secure user accounts with Supabase
-- **Responsive Design**: Works on desktop and mobile devices
+- **Real-time Movement Analysis**: Advanced pose detection for rehabilitation exercises
+- **Pain Assessment & Tracking**: AI-powered pain level monitoring and movement compensation detection
+- **Therapeutic Exercise Library**: Comprehensive database of rehabilitation exercises with proper form guidance
+- **Patient Progress Tracking**: Detailed recovery metrics and compliance monitoring
+- **Healthcare Provider Dashboard**: Complete patient management system for physical therapists
+- **HIPAA-Compliant Platform**: Secure, healthcare-grade data protection and privacy compliance
 
 ## 🛠️ Tech Stack
 

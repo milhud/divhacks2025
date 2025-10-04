@@ -9,6 +9,7 @@ export function AuthForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
+  const [providerCode, setProviderCode] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -24,7 +25,13 @@ export function AuthForm() {
     try {
       let result
       if (isSignUp) {
-        result = await signUp(email, password, fullName)
+        // Validate provider code for signup
+        if (providerCode && providerCode !== 'DEMO001') {
+          setError('Invalid provider code. Try: DEMO001')
+          setLoading(false)
+          return
+        }
+        result = await signUp(email, password, fullName, providerCode)
       } else {
         result = await signIn(email, password)
       }
@@ -38,6 +45,7 @@ export function AuthForm() {
           setEmail("")
           setPassword("")
           setFullName("")
+          setProviderCode("")
         }
       }
     } catch (err) {
@@ -116,6 +124,25 @@ export function AuthForm() {
                 required
               />
             </div>
+
+            {isSignUp && (
+              <div>
+                <label htmlFor="providerCode" className="block text-sm font-medium text-gray-700 mb-2">
+                  Provider Code (Optional)
+                </label>
+                <input
+                  id="providerCode"
+                  type="text"
+                  value={providerCode}
+                  onChange={(e) => setProviderCode(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="DEMO001"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter your healthcare provider's code to join their patient program
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">

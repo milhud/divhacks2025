@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // In production, you'd download the video from Supabase storage
     const videoPath = path.join(process.cwd(), 'temp_video.mp4')
     
-    // Mock video processing - replace with actual Python call
+    // Mock rehabilitation analysis - replace with actual Python call
     const mockResult = {
       success: true,
       video_info: {
@@ -27,11 +27,31 @@ export async function POST(request: NextRequest) {
         duration: 30.0,
         processed_frames: 900
       },
-      pose_analysis: {
-        form_score: Math.floor(Math.random() * 30) + 70, // 70-100
-        rep_count: Math.floor(Math.random() * 10) + 5,   // 5-15
+      rehabilitation_analysis: {
+        movement_quality_score: Math.floor(Math.random() * 30) + 70, // 70-100
+        pain_level: Math.floor(Math.random() * 5) + 1, // 1-5 pain scale
+        compensation_detected: Math.random() > 0.7, // Boolean for movement compensations
+        range_of_motion: Math.floor(Math.random() * 40) + 60, // 60-100% ROM
+        stability_score: Math.floor(Math.random() * 25) + 75, // 75-100
+        rep_count: Math.floor(Math.random() * 8) + 3,   // 3-10 reps
         overall_confidence: 0.85 + Math.random() * 0.1,  // 0.85-0.95
-        feedback: "Great workout! Your form looks solid. Keep your back straight and maintain controlled movements. Consider adding more depth to your squats for better muscle engagement.",
+        therapeutic_feedback: "Good progress on your rehabilitation exercises. I notice some slight compensation in your left knee - try to maintain equal weight distribution. Your range of motion is improving. Continue with the prescribed exercises and monitor your pain levels.",
+        movement_compensations: [
+          {
+            joint: "left_knee",
+            compensation_type: "valgus_collapse",
+            severity: "mild",
+            recommendation: "Focus on engaging your glutes and maintaining knee alignment over your toes"
+          }
+        ],
+        pain_indicators: [
+          {
+            area: "lower_back",
+            intensity: 2,
+            movement_trigger: "forward_flexion",
+            recommendation: "Reduce range of motion and focus on core engagement"
+          }
+        ],
         keypoints: [
           { name: 'nose', x: 0.5, y: 0.2, confidence: 0.95 },
           { name: 'left_shoulder', x: 0.4, y: 0.3, confidence: 0.92 },
@@ -55,8 +75,8 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 2000))
 
     return NextResponse.json({
-      message: 'Video analysis completed',
-      analysis: mockResult.pose_analysis,
+      message: 'Rehabilitation analysis completed',
+      analysis: mockResult.rehabilitation_analysis,
       video_info: mockResult.video_info
     })
 

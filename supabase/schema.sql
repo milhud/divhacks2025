@@ -1,11 +1,32 @@
 -- =====================================================
--- VIBE COACH - COMPLETE DATABASE SCHEMA
+-- VIBE COACH - COMPLETE DATABASE SCHEMA WITH DEMO DATA
 -- =====================================================
 -- This script creates the entire database structure for Vibe Coach
 -- Run this single command to set up everything needed
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- =====================================================
+-- RESET EXISTING DATA (FOR DEMO PURPOSES)
+-- =====================================================
+
+-- Drop existing tables if they exist (in correct order due to foreign keys)
+DROP TABLE IF EXISTS exercise_sessions CASCADE;
+DROP TABLE IF EXISTS rehab_assessments CASCADE;
+DROP TABLE IF EXISTS patient_assignments CASCADE;
+DROP TABLE IF EXISTS patients CASCADE;
+DROP TABLE IF EXISTS therapists CASCADE;
+DROP TABLE IF EXISTS clinics CASCADE;
+DROP TABLE IF EXISTS feedback CASCADE;
+DROP TABLE IF EXISTS pose_analysis CASCADE;
+DROP TABLE IF EXISTS workout_sessions CASCADE;
+DROP TABLE IF EXISTS user_progress CASCADE;
+DROP TABLE IF EXISTS wearable_data CASCADE;
+DROP TABLE IF EXISTS workout_plans CASCADE;
+DROP TABLE IF EXISTS meal_plans CASCADE;
+DROP TABLE IF EXISTS workouts CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
 
 -- =====================================================
 -- 1. CORE TABLES
@@ -141,6 +162,101 @@ CREATE TABLE meal_plans (
 );
 
 -- =====================================================
+-- REHABILITATION-SPECIFIC TABLES
+-- =====================================================
+
+-- Create clinics table
+CREATE TABLE clinics (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  license_number TEXT,
+  subscription_tier TEXT CHECK (subscription_tier IN ('basic', 'professional', 'enterprise')),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create therapists table
+CREATE TABLE therapists (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  clinic_id UUID REFERENCES clinics NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  specialization TEXT,
+  license_number TEXT,
+  patient_count INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create patients table
+CREATE TABLE patients (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  clinic_id UUID REFERENCES clinics NOT NULL,
+  therapist_id UUID REFERENCES therapists,
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  date_of_birth DATE,
+  medical_conditions TEXT[],
+  current_medications TEXT[],
+  emergency_contact TEXT,
+  status TEXT CHECK (status IN ('active', 'inactive', 'discharged')) DEFAULT 'active',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create patient_assignments table
+CREATE TABLE patient_assignments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  patient_id UUID REFERENCES patients NOT NULL,
+  therapist_id UUID REFERENCES therapists NOT NULL,
+  assigned_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(patient_id, therapist_id)
+);
+
+-- Create rehab_assessments table
+CREATE TABLE rehab_assessments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  patient_id UUID REFERENCES patients NOT NULL,
+  assessment_type TEXT NOT NULL, -- 'initial', 'progress', 'discharge'
+  pain_level INTEGER CHECK (pain_level >= 0 AND pain_level <= 10),
+  affected_areas TEXT[],
+  movement_limitations TEXT,
+  current_medications TEXT[],
+  previous_injuries TEXT,
+  session_data JSONB,
+  ai_assessment TEXT,
+  therapist_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create exercise_sessions table
+CREATE TABLE exercise_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  patient_id UUID REFERENCES patients NOT NULL,
+  exercise_id TEXT NOT NULL,
+  session_data JSONB,
+  pain_level INTEGER CHECK (pain_level >= 0 AND pain_level <= 10),
+  difficulty TEXT CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
+  notes TEXT,
+  completed_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Add rehabilitation columns to workout_sessions
+ALTER TABLE workout_sessions 
+ADD COLUMN pain_level INTEGER CHECK (pain_level >= 0 AND pain_level <= 10),
+ADD COLUMN compensation_detected BOOLEAN DEFAULT false,
+ADD COLUMN range_of_motion INTEGER CHECK (range_of_motion >= 0 AND range_of_motion <= 100),
+ADD COLUMN stability_score INTEGER CHECK (stability_score >= 0 AND stability_score <= 100),
+ADD COLUMN movement_compensations JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN pain_indicators JSONB DEFAULT '[]'::jsonb;
+
+-- =====================================================
 -- 2. ROW LEVEL SECURITY (RLS)
 -- =====================================================
 
@@ -154,6 +270,12 @@ ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wearable_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workout_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meal_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clinics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE therapists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patient_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rehab_assessments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exercise_sessions ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- 3. RLS POLICIES
@@ -248,6 +370,52 @@ CREATE POLICY "Users can insert their own meal plans." ON meal_plans
 
 CREATE POLICY "Users can update their own meal plans." ON meal_plans
   FOR UPDATE USING ((SELECT auth.uid()) = user_id);
+
+-- =====================================================
+-- REHABILITATION RLS POLICIES
+-- =====================================================
+
+-- Clinics policies (admin access only for now)
+CREATE POLICY "Clinics are viewable by authenticated users." ON clinics
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Clinics can be inserted by service role." ON clinics
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Therapists policies
+CREATE POLICY "Therapists are viewable by clinic members." ON therapists
+  FOR SELECT USING (true); -- Simplified for demo
+
+CREATE POLICY "Therapists can be inserted by service role." ON therapists
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Patients policies
+CREATE POLICY "Patients are viewable by clinic members." ON patients
+  FOR SELECT USING (true); -- Simplified for demo
+
+CREATE POLICY "Patients can be inserted by service role." ON patients
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Patient assignments policies
+CREATE POLICY "Patient assignments are viewable by clinic members." ON patient_assignments
+  FOR SELECT USING (true); -- Simplified for demo
+
+CREATE POLICY "Patient assignments can be inserted by service role." ON patient_assignments
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Rehab assessments policies
+CREATE POLICY "Rehab assessments are viewable by clinic members." ON rehab_assessments
+  FOR SELECT USING (true); -- Simplified for demo
+
+CREATE POLICY "Rehab assessments can be inserted by service role." ON rehab_assessments
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Exercise sessions policies
+CREATE POLICY "Exercise sessions are viewable by clinic members." ON exercise_sessions
+  FOR SELECT USING (true); -- Simplified for demo
+
+CREATE POLICY "Exercise sessions can be inserted by service role." ON exercise_sessions
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
 
 -- =====================================================
 -- 4. FUNCTIONS
@@ -400,6 +568,70 @@ CREATE INDEX idx_workout_plans_user_id ON workout_plans(user_id);
 CREATE INDEX idx_meal_plans_user_id ON meal_plans(user_id);
 
 -- =====================================================
+-- DEMO DATA FOR JUDGES PRESENTATION
+-- =====================================================
+
+-- Insert demo clinic
+INSERT INTO clinics (id, name, address, phone, email, license_number, subscription_tier, is_active) VALUES
+('550e8400-e29b-41d4-a716-446655440000', 'Demo Rehabilitation Clinic', '123 Healthcare Ave, Medical City, MC 12345', '(555) 123-4567', 'info@demorehab.com', 'CLINIC-2024-001', 'enterprise', true);
+
+-- Insert demo therapist
+INSERT INTO therapists (id, clinic_id, name, email, specialization, license_number, patient_count, is_active) VALUES
+('550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'Dr. Sarah Wilson, PT', 'sarah.wilson@demorehab.com', 'Orthopedic Physical Therapy', 'PT-2024-001', 3, true);
+
+-- Insert demo patients
+INSERT INTO patients (id, clinic_id, therapist_id, name, email, phone, date_of_birth, medical_conditions, current_medications, emergency_contact, status) VALUES
+('550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001', 'John Smith', 'john.smith@email.com', '(555) 111-2222', '1985-03-15', ARRAY['Lower back pain', 'Hip impingement'], ARRAY['Ibuprofen 400mg'], 'Jane Smith (555) 111-2223', 'active'),
+('550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001', 'Sarah Johnson', 'sarah.johnson@email.com', '(555) 333-4444', '1990-07-22', ARRAY['Knee rehabilitation', 'ACL reconstruction'], ARRAY['Acetaminophen 500mg'], 'Mike Johnson (555) 333-4445', 'active'),
+('550e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001', 'Mike Davis', 'mike.davis@email.com', '(555) 555-6666', '1978-11-08', ARRAY['Shoulder impingement', 'Rotator cuff tear'], ARRAY['Naproxen 220mg'], 'Lisa Davis (555) 555-6667', 'active');
+
+-- Insert patient assignments
+INSERT INTO patient_assignments (patient_id, therapist_id) VALUES
+('550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440001'),
+('550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440001'),
+('550e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440001');
+
+-- Insert demo rehab assessments
+INSERT INTO rehab_assessments (id, patient_id, assessment_type, pain_level, affected_areas, movement_limitations, current_medications, previous_injuries, session_data, ai_assessment, therapist_notes, created_at) VALUES
+('550e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440002', 'initial', 6, ARRAY['lower_back', 'left_hip'], 'Difficulty with forward bending and sitting for long periods', ARRAY['Ibuprofen 400mg'], 'Previous lower back strain in 2022', '{"range_of_motion": 75, "strength_tests": {"hip_flexors": 4, "core": 3}}', 'Patient presents with moderate lower back pain and hip impingement. Limited forward flexion and hip mobility. Recommend core strengthening and hip mobility exercises.', 'Initial assessment shows significant movement compensations. Will focus on core stability and hip mobility.', NOW() - INTERVAL '5 days'),
+('550e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440003', 'initial', 4, ARRAY['right_knee'], 'Difficulty with stairs and prolonged standing', ARRAY['Acetaminophen 500mg'], 'ACL reconstruction 6 months ago', '{"range_of_motion": 85, "strength_tests": {"quadriceps": 3, "hamstrings": 4}}', 'Post-surgical knee rehabilitation progressing well. Good range of motion but quadriceps strength needs improvement. Focus on functional movements.', 'Patient is compliant with home exercises. Good progress since surgery.', NOW() - INTERVAL '3 days'),
+('550e8400-e29b-41d4-a716-446655440007', '550e8400-e29b-41d4-a716-446655440004', 'initial', 7, ARRAY['right_shoulder'], 'Difficulty with overhead movements and sleeping on right side', ARRAY['Naproxen 220mg'], 'Previous shoulder dislocation 2 years ago', '{"range_of_motion": 60, "strength_tests": {"rotator_cuff": 2, "deltoids": 3}}', 'Significant shoulder impingement with limited overhead range of motion. Rotator cuff weakness evident. Need aggressive strengthening program.', 'Patient experiencing significant pain. Will start with gentle range of motion exercises.', NOW() - INTERVAL '1 day');
+
+-- Insert demo exercise sessions
+INSERT INTO exercise_sessions (id, patient_id, exercise_id, session_data, pain_level, difficulty, notes, completed_at) VALUES
+('550e8400-e29b-41d4-a716-446655440008', '550e8400-e29b-41d4-a716-446655440002', 'knee_001', '{"reps_completed": 10, "form_score": 85, "compensations": ["hip_hiking"]}', 3, 'beginner', 'Good form overall, slight hip hiking noted', NOW() - INTERVAL '2 hours'),
+('550e8400-e29b-41d4-a716-446655440009', '550e8400-e29b-41d4-a716-446655440003', 'knee_002', '{"reps_completed": 12, "form_score": 92, "compensations": []}', 2, 'beginner', 'Excellent form, no compensations detected', NOW() - INTERVAL '1 hour'),
+('550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440004', 'shoulder_001', '{"reps_completed": 8, "form_score": 78, "compensations": ["shoulder_elevation"]}', 5, 'beginner', 'Some shoulder elevation noted, will adjust technique', NOW() - INTERVAL '30 minutes');
+
+-- Insert demo workout sessions with rehabilitation data
+INSERT INTO workout_sessions (id, user_id, workout_id, video_url, pose_data, form_score, ai_feedback, duration, rep_count, calories_burned, pain_level, compensation_detected, range_of_motion, stability_score, movement_compensations, pain_indicators, created_at) VALUES
+('550e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440012', 'https://demo-videos.com/john-squat-session.mp4', '{"keypoints": [], "analysis": "good_form"}', 85, 'Great squat form! Keep your chest up and maintain that depth.', 15, 12, 120, 3, true, 85, 80, '[{"joint": "left_hip", "compensation_type": "anterior_tilt", "severity": "mild"}]', '[{"area": "lower_back", "intensity": 3, "movement_trigger": "squat"}]', NOW() - INTERVAL '2 hours'),
+('550e8400-e29b-41d4-a716-446655440013', '550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440014', 'https://demo-videos.com/sarah-lunge-session.mp4', '{"keypoints": [], "analysis": "excellent_form"}', 92, 'Perfect lunge technique! Your knee tracking is spot on.', 20, 15, 150, 2, false, 90, 88, '[]', '[{"area": "right_knee", "intensity": 2, "movement_trigger": "lunge"}]', NOW() - INTERVAL '1 hour'),
+('550e8400-e29b-41d4-a716-446655440015', '550e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440016', 'https://demo-videos.com/mike-shoulder-session.mp4', '{"keypoints": [], "analysis": "needs_improvement"}', 78, 'Good effort! Try to keep your shoulder blades down and back.', 12, 8, 80, 5, true, 60, 70, '[{"joint": "right_shoulder", "compensation_type": "elevation", "severity": "moderate"}]', '[{"area": "right_shoulder", "intensity": 5, "movement_trigger": "overhead_press"}]', NOW() - INTERVAL '30 minutes');
+
+-- Insert demo workouts for rehabilitation
+INSERT INTO workouts (id, title, description, duration, difficulty, category, tags, exercises, image_url, youtube_url, video_id, created_at, updated_at) VALUES
+('550e8400-e29b-41d4-a716-446655440012', 'Lower Back Rehabilitation', 'Core strengthening and hip mobility exercises for lower back pain', 20, 'Beginner', 'Rehabilitation', ARRAY['Rehabilitation', 'Lower Back', 'Core'], '[{"name": "Quad Sets", "reps": 10, "sets": 3}, {"name": "Hip Bridges", "reps": 12, "sets": 3}, {"name": "Cat-Cow Stretch", "reps": 8, "sets": 2}]', '/person-doing-core-exercises-and-planks.jpg', 'https://www.youtube.com/embed/DHD1-2P94DI', 'DHD1-2P94DI', NOW(), NOW()),
+('550e8400-e29b-41d4-a716-446655440014', 'Knee Rehabilitation', 'Quadriceps and hamstring strengthening for knee recovery', 25, 'Beginner', 'Rehabilitation', ARRAY['Rehabilitation', 'Knee', 'Lower Body'], '[{"name": "Straight Leg Raises", "reps": 15, "sets": 3}, {"name": "Wall Slides", "reps": 10, "sets": 3}, {"name": "Calf Raises", "reps": 12, "sets": 3}]', '/person-doing-squats-and-leg-exercises.jpg', 'https://www.youtube.com/embed/2C7P2FBHHQo', '2C7P2FBHHQo', NOW(), NOW()),
+('550e8400-e29b-41d4-a716-446655440016', 'Shoulder Rehabilitation', 'Rotator cuff strengthening and mobility exercises', 18, 'Beginner', 'Rehabilitation', ARRAY['Rehabilitation', 'Shoulder', 'Upper Body'], '[{"name": "Pendulum Exercises", "reps": 10, "sets": 3}, {"name": "Wall Slides", "reps": 8, "sets": 3}, {"name": "External Rotation", "reps": 12, "sets": 3}]', '/person-doing-upper-body-exercises.jpg', 'https://www.youtube.com/embed/IODxDxX7oi4', 'IODxDxX7oi4', NOW(), NOW());
+
+-- =====================================================
+-- DEMO USER ACCOUNTS (for testing)
+-- =====================================================
+
+-- Note: These would normally be created through Supabase Auth
+-- For demo purposes, we'll reference them by ID
+
+-- Demo provider account (Dr. Sarah Wilson)
+-- Email: sarah.wilson@demorehab.com
+-- Password: DemoProvider123!
+
+-- Demo user accounts
+-- Email: john.smith@email.com, Password: DemoUser123!
+-- Email: sarah.johnson@email.com, Password: DemoUser123!
+-- Email: mike.davis@email.com, Password: DemoUser123!
+
+-- =====================================================
 -- COMPLETE! 
 -- =====================================================
 -- The entire Vibe Coach database is now set up with:
@@ -407,7 +639,7 @@ CREATE INDEX idx_meal_plans_user_id ON meal_plans(user_id);
 -- ✅ Row Level Security enabled
 -- ✅ All policies configured
 -- ✅ Functions and triggers set up
--- ✅ Sample data inserted
+-- ✅ Demo data inserted for judges presentation
 -- ✅ Performance indexes created
 -- 
 -- You can now run this single SQL script to create everything!

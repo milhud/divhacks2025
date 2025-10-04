@@ -1,42 +1,44 @@
-# Vibe Coach – Real-Time AI Fitness & Rehab Assistant
+# RehabAI – AI-Powered Rehabilitation & Movement Recovery Platform
 
 ## 1. Overview  
-Vibe Coach is a **real-time AI workout assistant** that uses computer vision and LLM-powered feedback to improve exercise form and support rehab. Instead of waiting for post-session reports, users receive **live visual + auditory feedback** while performing workouts.  
+RehabAI is a **comprehensive rehabilitation platform** that uses advanced computer vision and AI to provide real-time movement analysis, pain assessment, and personalized recovery programs. The platform bridges the gap between clinical rehabilitation and at-home recovery, ensuring patients receive professional-grade guidance while maintaining compliance with their treatment plans.
 
 The platform supports:  
-- **End Users**: Live form correction, scoring, and motivational feedback.  
-- **Trainers**: Ability to upload instructions/workouts and monitor clients remotely.  
-- **Gyms & Clinics**: Integration as a plug-in service for **remote coaching, hybrid fitness, and rehab programs**.  
+- **Patients**: Real-time movement correction, pain tracking, and guided recovery exercises.  
+- **Physical Therapists**: Remote patient monitoring, progress tracking, and treatment plan adjustments.  
+- **Healthcare Clinics**: Complete rehabilitation management system with patient data, compliance reporting, and outcome analytics.  
 
 ---
 
 ## 2. Goals  
-- Deliver **live pose analysis** and **audio feedback** to prevent injury and maximize performance.  
-- Support **rehab clinics** by validating exercises in real-time and encouraging correct movement.  
-- Empower **trainers and gyms** with scalable remote coaching tools.  
-- Build a **startup-ready foundation** with clear B2C and B2B monetization paths.  
+- Deliver **real-time movement analysis** and **therapeutic feedback** to accelerate recovery and prevent re-injury.  
+- Support **physical therapy clinics** with comprehensive patient management and remote monitoring capabilities.  
+- Empower **healthcare providers** with AI-powered insights and evidence-based treatment recommendations.  
+- Build a **healthcare-focused startup** with clear B2B monetization through clinic partnerships and insurance integration.  
 
 ---
 
 ## 3. Key Features  
 
-### User Experience (Live Coaching)  
-- **Live Video Capture**: Perform workouts via webcam or phone camera.  
-- **Pose Detection**: CV model tracks skeleton keypoints in real time.  
-- **Auditory Feedback**: Immediate cues (e.g., “Straighten your back,” “Knees too far forward”).  
-- **Visual Overlay** (stretch): Heatmap or skeleton overlay showing correct vs. incorrect posture.  
-- **Session Summary**: After workout, receive rep count, form score, and natural-language breakdown from LLM.  
-- **Wearable Input (stretch)**: Stream biometrics (heart rate, motion sensors) for enhanced analysis.  
+### Patient Experience (Rehabilitation Focus)  
+- **Live Movement Capture**: Record rehabilitation exercises via webcam or phone camera.  
+- **Pain Assessment**: AI-powered pain level tracking and movement compensation detection.  
+- **Therapeutic Feedback**: Real-time cues (e.g., "Reduce knee valgus," "Engage core for stability").  
+- **Movement Analysis**: Skeleton overlay showing correct vs. compensatory movement patterns.  
+- **Recovery Progress**: Detailed session reports with pain levels, movement quality, and compliance metrics.  
+- **Wearable Integration**: Biometric monitoring for heart rate, stress levels, and movement patterns.  
 
-### Trainer / Clinic Interface  
-- **Workout Builder**: Upload instructions, correct pose templates, and demo videos.  
-- **Live Monitoring**: Watch client sessions in real-time (optional stretch goal).  
-- **Progress Reports**: Track compliance, scores, and flagged issues over time.  
+### Physical Therapist Interface  
+- **Treatment Plan Builder**: Create personalized rehabilitation programs with exercise libraries.  
+- **Patient Monitoring**: Real-time patient session monitoring and progress tracking.  
+- **Clinical Reports**: Comprehensive patient progress reports with compliance metrics and outcome analytics.  
+- **Pain Management**: Track pain levels, medication adherence, and treatment effectiveness.
 
-### Gym/Clinic Integration (Startup Potential)  
-- **White-label SDK/API**: Embed live coaching into existing fitness or rehab apps.  
-- **Multi-client Dashboard**: Gyms/clinics manage trainers, assign programs, and track outcomes.  
-- **Rehab Support**: Provide physiotherapists with validated data on patient form adherence.  
+### Healthcare Clinic Integration (B2B Focus)  
+- **Clinic Management Dashboard**: Complete patient management system with scheduling and billing integration.  
+- **Provider Portal**: Multi-therapist support with role-based access and patient assignment.  
+- **Compliance Reporting**: HIPAA-compliant reporting for insurance and regulatory requirements.  
+- **Outcome Analytics**: Evidence-based treatment outcomes and ROI tracking for clinic management.
 
 ---
 
@@ -91,21 +93,22 @@ The platform supports:
 
 ---
 
-## 7. Business Model & Startup Strategy  
+## 7. Business Model & Healthcare Startup Strategy  
 
-- **B2C**: Subscription for users who want a “personal AI trainer.”  
-- **B2B**:  
-  - Gyms/fitness apps license SDK for live AI coaching.  
-  - Rehab clinics use platform for remote therapy adherence.  
+- **B2B Primary**: Direct partnerships with physical therapy clinics and healthcare systems.  
+- **B2B2C**: Clinic-managed patient subscriptions with provider oversight.  
+- **Enterprise**: Integration with Electronic Health Records (EHR) and healthcare management systems.  
 - **Revenue Streams**:  
-  - Subscription tiers (basic vs. pro feedback).  
-  - API licensing for integration with gym software.  
-  - Enterprise rehab contracts (clinics, insurers).  
+  - **Clinic Licensing**: Monthly per-therapist licensing fees ($200-500/month per provider).  
+  - **Patient Management**: Per-patient monthly fees ($25-50/month per active patient).  
+  - **API Integration**: Custom integration fees for EHR systems ($10K-50K per integration).  
+  - **Outcome-Based Pricing**: Performance bonuses based on patient recovery metrics.  
 
-**Differentiation:**  
-- Real-time **audio corrections** → feels like a live coach.  
-- Hybrid positioning: bridges **fitness coaching + medical rehab**.  
-- Integration-friendly: modular API/SDK for gyms and apps.  
+**Healthcare Differentiation:**  
+- **Clinical-Grade AI**: Evidence-based movement analysis with peer-reviewed validation.  
+- **HIPAA Compliance**: Full healthcare data protection and privacy compliance.  
+- **Insurance Integration**: Direct billing integration with major insurance providers.  
+- **Outcome Tracking**: Measurable ROI through reduced readmission rates and faster recovery times.  
 
 ---
 

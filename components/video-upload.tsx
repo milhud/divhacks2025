@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
 import { MarkdownRenderer } from "./markdown-renderer"
+import { LiveCameraFeed } from "./live-camera-feed"
+import { PainInput } from "./pain-input"
 
 export function VideoUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [activeMode, setActiveMode] = useState<'upload' | 'live' | 'pain'>('upload')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
 
@@ -136,10 +139,50 @@ export function VideoUpload() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
   }
 
+  const handlePainSubmit = (painData: any) => {
+    console.log('Pain data submitted:', painData)
+    // Handle pain data submission
+  }
+
+  const handleMovementHurt = (movementData: any) => {
+    console.log('Movement hurt data submitted:', movementData)
+    // Handle movement hurt data
+  }
+
+  const handleLiveAnalysisComplete = (analysis: any) => {
+    console.log('Live analysis completed:', analysis)
+    setAnalysisResult(analysis)
+  }
+
   return (
     <Card className="p-8 bg-card border-border">
       <div className="space-y-6">
-        {/* Upload Area */}
+        {/* Mode Selection */}
+        <div className="flex justify-center gap-4 mb-6">
+          <Button
+            variant={activeMode === 'upload' ? 'default' : 'outline'}
+            onClick={() => setActiveMode('upload')}
+          >
+            Upload Video
+          </Button>
+          <Button
+            variant={activeMode === 'live' ? 'default' : 'outline'}
+            onClick={() => setActiveMode('live')}
+          >
+            Live Camera Feed
+          </Button>
+          <Button
+            variant={activeMode === 'pain' ? 'default' : 'outline'}
+            onClick={() => setActiveMode('pain')}
+          >
+            Pain Assessment
+          </Button>
+        </div>
+
+        {/* Upload Mode */}
+        {activeMode === 'upload' && (
+          <>
+            {/* Upload Area */}
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -283,29 +326,96 @@ export function VideoUpload() {
           </div>
         )}
 
-        {/* Pro Tip */}
-        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <svg
-            className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div className="text-sm leading-relaxed">
-            <p className="font-medium text-blue-900 mb-1">Pro Tip</p>
-            <p className="text-blue-800">
-              For best results, record your workout from the side with your full body visible. Good lighting and a
-              stable camera position help our AI provide more accurate feedback.
-            </p>
+            {/* Pro Tip */}
+            <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <svg
+                className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="text-sm leading-relaxed">
+                <p className="font-medium text-blue-900 mb-1">Pro Tip</p>
+                <p className="text-blue-800">
+                  For best results, record your workout from the side with your full body visible. Good lighting and a
+                  stable camera position help our AI provide more accurate feedback.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Live Camera Mode */}
+        {activeMode === 'live' && (
+          <LiveCameraFeed 
+            onAnalysisComplete={handleLiveAnalysisComplete}
+            exerciseType="General Workout"
+          />
+        )}
+
+        {/* Pain Assessment Mode */}
+        {activeMode === 'pain' && (
+          <PainInput 
+            onPainSubmit={handlePainSubmit}
+            onMovementHurt={handleMovementHurt}
+          />
+        )}
+
+        {/* Analysis Results - Shared across all modes */}
+        {analysisResult && (
+          <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-green-900">Analysis Complete!</h3>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{analysisResult.form_score || analysisResult.movement_quality_score || 0}%</div>
+                <div className="text-sm text-green-700">Form Score</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{analysisResult.rep_count || 0}</div>
+                <div className="text-sm text-green-700">Reps Counted</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{analysisResult.pain_level || 0}/10</div>
+                <div className="text-sm text-red-700">Pain Level</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{analysisResult.range_of_motion || 0}%</div>
+                <div className="text-sm text-blue-700">Range of Motion</div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-green-900 mb-2">AI Feedback:</h4>
+              <div className="text-green-800 text-sm">
+                <MarkdownRenderer content={analysisResult.feedback || analysisResult.therapeutic_feedback || "No feedback available"} />
+              </div>
+            </div>
+
+            {analysisResult.compensations && analysisResult.compensations.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium text-red-900 mb-2">Movement Compensations Detected:</h4>
+                <ul className="text-red-800 text-sm">
+                  {analysisResult.compensations.map((comp: any, index: number) => (
+                    <li key={index}>• {comp.joint}: {comp.compensation_type} ({comp.severity})</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </Card>
   )

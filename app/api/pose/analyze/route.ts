@@ -31,14 +31,20 @@ export async function POST(request: NextRequest) {
     const pythonResult = await pythonResponse.json()
     const analysis = pythonResult.analysis
 
-    // Update the session with pose analysis results
+    // Update the session with rehabilitation analysis results
     const { error: updateError } = await supabaseAdmin
       .from('workout_sessions')
       .update({
         pose_data: analysis,
-        form_score: analysis.form_score,
+        form_score: analysis.movement_quality_score,
         rep_count: analysis.rep_count,
         duration: Math.round(pythonResult.video_info?.duration / 60) || 0, // Convert to minutes
+        pain_level: analysis.pain_level,
+        compensation_detected: analysis.compensation_detected,
+        range_of_motion: analysis.range_of_motion,
+        stability_score: analysis.stability_score,
+        movement_compensations: analysis.movement_compensations,
+        pain_indicators: analysis.pain_indicators,
       })
       .eq('id', sessionId)
 
@@ -48,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'Pose analysis completed',
+      message: 'Rehabilitation analysis completed',
       analysis: analysis,
     })
   } catch (error) {
