@@ -1,178 +1,108 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react'
+import { AILiveCamera } from "@/components/ai-live-camera"
+import { useState } from "react"
 
 export default function TestCamera() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [status, setStatus] = useState('Click Start')
-  const [poseLoaded, setPoseLoaded] = useState(false)
-  const poseRef = useRef<any>(null)
+  const [analysisHistory, setAnalysisHistory] = useState<any[]>([])
 
-  useEffect(() => {
-    // Load MediaPipe
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js'
-    script.onload = () => {
-      console.log('MediaPipe loaded!')
-      setPoseLoaded(true)
-      setStatus('MediaPipe loaded - click Start Camera')
-    }
-    script.onerror = () => {
-      console.error('Failed to load MediaPipe')
-      setStatus('ERROR: MediaPipe failed to load')
-    }
-    document.body.appendChild(script)
-  }, [])
-
-  const startCamera = async () => {
-    try {
-      setStatus('Requesting camera...')
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        setStatus('Camera started! Waiting for video...')
-        
-        videoRef.current.onloadedmetadata = async () => {
-          setStatus('Video loaded! Initializing pose...')
-          
-          // @ts-ignore
-          const { Pose } = window
-          
-          if (!Pose) {
-            setStatus('ERROR: Pose not found in window')
-            return
-          }
-
-          const pose = new Pose({
-            locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
-          })
-
-          pose.setOptions({
-            modelComplexity: 1,
-            smoothLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-          })
-
-          pose.onResults((results: any) => {
-            if (!results.poseLandmarks) {
-              setStatus('No pose detected')
-              return
-            }
-
-            setStatus(`✅ POSE DETECTED! ${results.poseLandmarks.length} landmarks`)
-            drawPose(results.poseLandmarks)
-          })
-
-          poseRef.current = pose
-          setStatus('Pose initialized! Processing frames...')
-          processFrame()
-        }
-      }
-    } catch (err) {
-      console.error('Camera error:', err)
-      setStatus(`ERROR: ${err}`)
-    }
-  }
-
-  const processFrame = async () => {
-    if (!videoRef.current || !poseRef.current) return
-
-    try {
-      await poseRef.current.send({ image: videoRef.current })
-    } catch (err) {
-      console.error('Frame error:', err)
-    }
-
-    requestAnimationFrame(processFrame)
-  }
-
-  const drawPose = (landmarks: any[]) => {
-    const canvas = canvasRef.current
-    const video = videoRef.current
-    if (!canvas || !video) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    // Draw BIG GREEN CIRCLES on every landmark
-    landmarks.forEach((lm, i) => {
-      ctx.beginPath()
-      ctx.arc(lm.x * canvas.width, lm.y * canvas.height, 10, 0, 2 * Math.PI)
-      ctx.fillStyle = '#00FF00'
-      ctx.fill()
-      
-      // Draw landmark number
-      ctx.fillStyle = '#FFFFFF'
-      ctx.font = '12px Arial'
-      ctx.fillText(`${i}`, lm.x * canvas.width + 12, lm.y * canvas.height)
-    })
-
-    // Draw skeleton connections
-    const connections = [
-      [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
-      [11, 23], [12, 24], [23, 24],
-      [23, 25], [25, 27], [24, 26], [26, 28]
-    ]
-
-    ctx.strokeStyle = '#FF0000'
-    ctx.lineWidth = 5
-    connections.forEach(([a, b]) => {
-      const start = landmarks[a]
-      const end = landmarks[b]
-      ctx.beginPath()
-      ctx.moveTo(start.x * canvas.width, start.y * canvas.height)
-      ctx.lineTo(end.x * canvas.width, end.y * canvas.height)
-      ctx.stroke()
-    })
+  const handleAnalysisComplete = (analysis: any) => {
+    setAnalysisHistory(prev => [analysis, ...prev].slice(0, 5)) // Keep last 5 analyses
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-4xl font-bold mb-4">MediaPipe Test Page</h1>
-      
-      <div className="mb-4 p-4 bg-blue-900 rounded text-xl">
-        Status: {status}
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            🏋️ Exercise Form Analysis
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Test the AI-powered form analysis with squats and bicep curls. 
+            Select your exercise and get real-time feedback on your form.
+          </p>
+        </div>
 
-      <button
-        onClick={startCamera}
-        disabled={!poseLoaded}
-        className="px-8 py-4 bg-green-600 text-white rounded text-xl font-bold mb-4 disabled:bg-gray-600"
-      >
-        START CAMERA
-      </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Analysis Area */}
+          <div className="lg:col-span-2">
+            <AILiveCamera
+              onAnalysisComplete={handleAnalysisComplete}
+              showExerciseSelector={true}
+            />
+          </div>
 
-      <div className="relative">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full max-w-2xl border-4 border-blue-500"
-        />
-        <canvas
-          ref={canvasRef}
-          className="absolute top-0 left-0 w-full max-w-2xl pointer-events-none"
-        />
-      </div>
+          {/* Analysis History */}
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4">Recent Analysis</h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {analysisHistory.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No analysis data yet</p>
+                ) : (
+                  analysisHistory.map((analysis, index) => (
+                    <div
+                      key={index}
+                      className="p-3 bg-gray-50 rounded-lg text-sm"
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium">
+                          {analysis.exerciseType} - {analysis.formScore}%
+                        </span>
+                        <span className="text-gray-500">
+                          {new Date(analysis.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className="text-gray-600">
+                        {analysis.repCount} reps • {analysis.currentAngle}° angle
+                      </div>
+                      <div className="text-xs text-blue-600 mt-1">
+                        {analysis.feedback}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
 
-      <div className="mt-4 p-4 bg-yellow-900 rounded">
-        <h2 className="font-bold mb-2">Expected Behavior:</h2>
-        <ul className="list-disc ml-6">
-          <li>Status should say "MediaPipe loaded"</li>
-          <li>Click "START CAMERA" and allow camera access</li>
-          <li>Status should say "✅ POSE DETECTED!"</li>
-          <li>You should see BIG GREEN CIRCLES on your body</li>
-          <li>You should see RED LINES connecting joints</li>
-        </ul>
+            {/* Exercise Instructions */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4">Exercise Instructions</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-gray-900">🏋️ Squat</h4>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    <li>• Stand with feet shoulder-width apart</li>
+                    <li>• Lower down until thighs are parallel to floor</li>
+                    <li>• Keep knees over toes</li>
+                    <li>• Drive through heels to stand up</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">💪 Bicep Curl</h4>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    <li>• Stand with arms at sides</li>
+                    <li>• Curl weights up to shoulders</li>
+                    <li>• Keep elbows close to body</li>
+                    <li>• Control the movement down</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Tips */}
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4 text-blue-900">💡 Tips</h3>
+              <ul className="text-sm text-blue-800 space-y-2">
+                <li>• Ensure good lighting for better detection</li>
+                <li>• Stand 3-6 feet from camera</li>
+                <li>• Keep your full body in frame</li>
+                <li>• Move through full range of motion</li>
+                <li>• Listen to voice coaching cues</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
