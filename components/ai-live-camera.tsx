@@ -438,7 +438,7 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     // Generate basic feedback only
     const feedbackParts = generateBasicFeedback(angles, exerciseName, primaryAngle, currentRepState)
 
-    // SIMPLE BICEP CURL REP COUNTING - just call increment function
+    // SIMPLE REP COUNTING - call increment function when perfect form detected
     if (exerciseName === 'bicep_curl') {
       const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
       
@@ -450,6 +450,32 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
       console.log(`💪 [BICEP] Current reps: ${repCount}, TimeSince: ${timeSinceLastRep.toFixed(1)}s, Perfect: ${anyPerfect}`)
       
       if (anyPerfect && timeSinceLastRep > 1.0) { // 1 second cooldown
+        // CALL INCREMENT FUNCTION
+        incrementRep()
+        lastRepTimeRef.current = now
+      }
+    } else if (exerciseName === 'squat') {
+      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      
+      // Debug: Show all feedback messages for squats
+      console.log(`🏋️ [SQUAT] All feedback: ${feedbackParts.join(' | ')}`)
+      
+      // Check for perfect squat depth and stability
+      const perfectDepth = feedbackParts.includes('💎 Perfect depth!')
+      const goodForm = feedbackParts.includes('✅ Good form') || feedbackParts.includes('💎 Perfect depth!')
+      const stableBody = !feedbackParts.some(feedback => 
+        feedback.includes('⚠️') || feedback.includes('❌') || feedback.includes('swaying') || feedback.includes('leaning')
+      )
+      
+      console.log(`🏋️ [SQUAT] Current reps: ${repCount}, TimeSince: ${timeSinceLastRep.toFixed(1)}s, PerfectDepth: ${perfectDepth}, GoodForm: ${goodForm}, Stable: ${stableBody}`)
+      
+      // Simplified: just check if knee angle is low enough (below 90 degrees)
+      const kneeAngle = (angles.leftKnee + angles.rightKnee) / 2
+      const lowEnough = kneeAngle < 90
+      
+      console.log(`🏋️ [SQUAT] Knee angle: ${Math.round(kneeAngle)}°, Low enough: ${lowEnough}`)
+      
+      if (lowEnough && timeSinceLastRep > 1.0) { // 1 second cooldown
         // CALL INCREMENT FUNCTION
         incrementRep()
         lastRepTimeRef.current = now
