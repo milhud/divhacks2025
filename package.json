@@ -9,17 +9,21 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.17.1",
+    "@google-cloud/video-intelligence": "^6.2.0",
     "@supabase/supabase-js": "^2.45.4",
     "@tensorflow/tfjs": "^4.17.0",
-    "openai": "^4.67.3",
+    "clsx": "^2.1.1",
+    "form-data": "^4.0.4",
+    "lucide-react": "^0.454.0",
     "next": "15.2.4",
+    "node-fetch": "^3.3.2",
+    "openai": "^4.104.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "lucide-react": "^0.454.0",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.5",
     "react-markdown": "^9.0.1",
-    "remark-gfm": "^4.0.0"
+    "remark-gfm": "^4.0.0",
+    "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
     "@types/node": "^20",
