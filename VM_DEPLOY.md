@@ -3,21 +3,21 @@
 ## SUPER SIMPLE - 10 Minutes
 
 ### Step 1: Upload Your Code to VM
-```bash
+\`\`\`bash
 # From your local machine, copy files to VM
 gcloud compute scp --recurse . your-vm-name:~/vibe-coach --zone=your-zone
 
 # Or use rsync for better performance
 rsync -avz --exclude node_modules . your-vm-name:~/vibe-coach
-```
+\`\`\`
 
 ### Step 2: SSH into Your VM
-```bash
+\`\`\`bash
 gcloud compute ssh your-vm-name --zone=your-zone
-```
+\`\`\`
 
 ### Step 3: Install Dependencies on VM
-```bash
+\`\`\`bash
 # Update system
 sudo apt update
 
@@ -33,10 +33,10 @@ cd ~/vibe-coach
 
 # Install app dependencies
 npm install
-```
+\`\`\`
 
 ### Step 4: Set Up Environment Variables
-```bash
+\`\`\`bash
 # Create .env.local file
 nano .env.local
 
@@ -46,10 +46,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 OPENAI_API_KEY=your_openai_key
 NEXT_PUBLIC_BASE_URL=http://your-vm-external-ip:3000
-```
+\`\`\`
 
 ### Step 5: Build and Start the App
-```bash
+\`\`\`bash
 # Build the app
 npm run build
 
@@ -59,22 +59,22 @@ pm2 start npm --name "vibe-coach" -- start
 # Save PM2 configuration
 pm2 save
 pm2 startup
-```
+\`\`\`
 
 ### Step 6: Open Firewall Port
-```bash
+\`\`\`bash
 # Allow traffic on port 3000
 gcloud compute firewall-rules create allow-vibe-coach \
   --allow tcp:3000 \
   --source-ranges 0.0.0.0/0 \
   --description "Allow Vibe Coach app"
-```
+\`\`\`
 
 ### Step 7: Get Your App URL
-```bash
+\`\`\`bash
 # Get your VM's external IP
 gcloud compute instances describe your-vm-name --zone=your-zone --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
-```
+\`\`\`
 
 **Your app will be available at: `http://YOUR-VM-IP:3000`**
 
@@ -83,7 +83,7 @@ gcloud compute instances describe your-vm-name --zone=your-zone --format="get(ne
 ## 🛑 SHUT DOWN (When Done)
 
 ### Stop the App
-```bash
+\`\`\`bash
 # SSH into VM
 gcloud compute ssh your-vm-name --zone=your-zone
 
@@ -93,30 +93,30 @@ pm2 delete vibe-coach
 
 # Or stop the VM entirely
 gcloud compute instances stop your-vm-name --zone=your-zone
-```
+\`\`\`
 
 ### Delete Firewall Rule
-```bash
+\`\`\`bash
 gcloud compute firewall-rules delete allow-vibe-coach
-```
+\`\`\`
 
 ---
 
 ## 🔧 USEFUL COMMANDS
 
 ### Check App Status
-```bash
+\`\`\`bash
 pm2 status
 pm2 logs vibe-coach
-```
+\`\`\`
 
 ### Restart App
-```bash
+\`\`\`bash
 pm2 restart vibe-coach
-```
+\`\`\`
 
 ### Update App
-```bash
+\`\`\`bash
 # Upload new code
 gcloud compute scp --recurse . your-vm-name:~/vibe-coach --zone=your-zone
 
@@ -126,7 +126,7 @@ cd ~/vibe-coach
 npm install
 npm run build
 pm2 restart vibe-coach
-```
+\`\`\`
 
 ---
 

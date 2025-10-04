@@ -17,7 +17,7 @@ const workouts = [
     tags: ["Strength", "Full Body"],
     description: "Build overall strength with compound movements",
     youtubeUrl: "https://www.youtube.com/embed/R6gZoAzAhCg",
-    videoId: "R6gZoAzAhCg"
+    videoId: "R6gZoAzAhCg",
   },
   {
     id: 2,
@@ -28,7 +28,7 @@ const workouts = [
     tags: ["Strength", "Upper Body"],
     description: "Target chest, shoulders, and triceps",
     youtubeUrl: "https://www.youtube.com/embed/IODxDxX7oi4",
-    videoId: "IODxDxX7oi4"
+    videoId: "IODxDxX7oi4",
   },
   {
     id: 3,
@@ -39,7 +39,7 @@ const workouts = [
     tags: ["Strength", "Lower Body"],
     description: "Explosive leg and glute exercises",
     youtubeUrl: "https://www.youtube.com/embed/2C7P2FBHHQo",
-    videoId: "2C7P2FBHHQo"
+    videoId: "2C7P2FBHHQo",
   },
   {
     id: 4,
@@ -50,7 +50,7 @@ const workouts = [
     tags: ["Core", "Abs"],
     description: "Strengthen your core and improve balance",
     youtubeUrl: "https://www.youtube.com/embed/DHD1-2P94DI",
-    videoId: "DHD1-2P94DI"
+    videoId: "DHD1-2P94DI",
   },
   {
     id: 5,
@@ -61,7 +61,7 @@ const workouts = [
     tags: ["Cardio", "HIIT"],
     description: "High-intensity intervals for maximum burn",
     youtubeUrl: "https://www.youtube.com/embed/ml6cT4AZdqI",
-    videoId: "ml6cT4AZdqI"
+    videoId: "ml6cT4AZdqI",
   },
   {
     id: 6,
@@ -72,7 +72,7 @@ const workouts = [
     tags: ["Mobility", "Flexibility"],
     description: "Improve flexibility and reduce stress",
     youtubeUrl: "https://www.youtube.com/embed/v7AYKMP6rOE",
-    videoId: "v7AYKMP6rOE"
+    videoId: "v7AYKMP6rOE",
   },
   {
     id: 7,
@@ -83,7 +83,7 @@ const workouts = [
     tags: ["Strength", "Upper Body"],
     description: "Build a powerful chest and strong triceps",
     youtubeUrl: "https://www.youtube.com/embed/IODxDxX7oi4",
-    videoId: "IODxDxX7oi4"
+    videoId: "IODxDxX7oi4",
   },
   {
     id: 8,
@@ -94,7 +94,7 @@ const workouts = [
     tags: ["Strength", "Upper Body"],
     description: "Build a strong back and bigger biceps",
     youtubeUrl: "https://www.youtube.com/embed/eE7dzNyiv0c",
-    videoId: "eE7dzNyiv0c"
+    videoId: "eE7dzNyiv0c",
   },
   {
     id: 9,
@@ -105,7 +105,7 @@ const workouts = [
     tags: ["Strength", "Lower Body"],
     description: "Complete leg workout for mass and strength",
     youtubeUrl: "https://www.youtube.com/embed/BwbmbKshJIk",
-    videoId: "BwbmbKshJIk"
+    videoId: "BwbmbKshJIk",
   },
   {
     id: 10,
@@ -116,7 +116,7 @@ const workouts = [
     tags: ["Strength", "Upper Body"],
     description: "Sculpt your shoulders and arms",
     youtubeUrl: "https://www.youtube.com/embed/3VcFR6rcsd4",
-    videoId: "3VcFR6rcsd4"
+    videoId: "3VcFR6rcsd4",
   },
   {
     id: 11,
@@ -127,7 +127,7 @@ const workouts = [
     tags: ["Cardio", "Fat Burn"],
     description: "Burn calories with cardio exercises",
     youtubeUrl: "https://www.youtube.com/embed/gC_L9qAHVJ8",
-    videoId: "gC_L9qAHVJ8"
+    videoId: "gC_L9qAHVJ8",
   },
   {
     id: 12,
@@ -138,7 +138,7 @@ const workouts = [
     tags: ["Core", "Pilates"],
     description: "Pilates-inspired core strengthening",
     youtubeUrl: "https://www.youtube.com/embed/6JhwhFQeTP0",
-    videoId: "6JhwhFQeTP0"
+    videoId: "6JhwhFQeTP0",
   },
   {
     id: 13,
@@ -149,7 +149,7 @@ const workouts = [
     tags: ["Mobility", "Flexibility"],
     description: "Gentle stretches to start your day",
     youtubeUrl: "https://www.youtube.com/embed/g_tea8ZNk5A",
-    videoId: "g_tea8ZNk5A"
+    videoId: "g_tea8ZNk5A",
   },
   {
     id: 14,
@@ -160,7 +160,7 @@ const workouts = [
     tags: ["Cardio", "HIIT"],
     description: "Intense Tabata intervals",
     youtubeUrl: "https://www.youtube.com/embed/20xhTMY2Hv0",
-    videoId: "20xhTMY2Hv0"
+    videoId: "20xhTMY2Hv0",
   },
   {
     id: 15,
@@ -171,24 +171,22 @@ const workouts = [
     tags: ["Strength", "Lower Body"],
     description: "Target your posterior chain",
     youtubeUrl: "https://www.youtube.com/embed/B4MvP3z7GC4",
-    videoId: "B4MvP3z7GC4"
-  }
+    videoId: "B4MvP3z7GC4",
+  },
 ]
 
 // Extract all unique tags
-const allTags = ["All", ...Array.from(new Set(workouts.flatMap(w => w.tags))).sort()]
+const allTags = ["All", ...Array.from(new Set(workouts.flatMap((w) => w.tags))).sort()]
 
 export default function WorkoutsPage() {
   const [selectedTag, setSelectedTag] = useState("All")
-  const [activeWorkout, setActiveWorkout] = useState<typeof workouts[0] | null>(null)
+  const [activeWorkout, setActiveWorkout] = useState<(typeof workouts)[0] | null>(null)
   const [showAuth, setShowAuth] = useState(false)
   const { user, signOut } = useAuth()
 
-  const filteredWorkouts = selectedTag === "All" 
-    ? workouts 
-    : workouts.filter(w => w.tags.includes(selectedTag))
+  const filteredWorkouts = selectedTag === "All" ? workouts : workouts.filter((w) => w.tags.includes(selectedTag))
 
-  const handleStart = (workout: typeof workouts[0]) => {
+  const handleStart = (workout: (typeof workouts)[0]) => {
     setActiveWorkout(workout)
   }
 
@@ -197,17 +195,15 @@ export default function WorkoutsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="border-b border-border">
+      <header className="border-b border-border/50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">V</span>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <span className="text-2xl font-bold text-primary-foreground">S</span>
             </div>
-            <h1 className="text-2xl font-bold text-balance">
-              Vibe <span className="text-primary">Coach</span>
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">Spottr</h1>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -229,15 +225,10 @@ export default function WorkoutsPage() {
           {user ? (
             <div className="flex items-center gap-4">
               <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <Avatar 
-                  name={user?.user_metadata?.full_name || user?.email || 'User'} 
-                  size="sm" 
-                />
-                <span className="text-sm text-muted-foreground hover:text-foreground">
-                  Profile
-                </span>
+                <Avatar name={user?.user_metadata?.full_name || user?.email || "User"} size="sm" />
+                <span className="text-sm text-muted-foreground hover:text-foreground">Profile</span>
               </Link>
-              <button 
+              <button
                 onClick={() => signOut()}
                 className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors"
               >
@@ -245,7 +236,7 @@ export default function WorkoutsPage() {
               </button>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setShowAuth(true)}
               className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
             >
@@ -261,9 +252,7 @@ export default function WorkoutsPage() {
           {/* Page Header */}
           <div className="mb-8">
             <h2 className="text-4xl font-bold mb-3">Browse Workouts</h2>
-            <p className="text-lg text-muted-foreground">
-              Choose a workout and start following along with the video
-            </p>
+            <p className="text-lg text-muted-foreground">Choose a workout and start following along with the video</p>
           </div>
 
           {/* Tag Filter */}
@@ -273,9 +262,7 @@ export default function WorkoutsPage() {
                 key={tag}
                 onClick={() => setSelectedTag(tag)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  tag === selectedTag 
-                    ? "bg-primary text-primary-foreground" 
-                    : "bg-card hover:bg-muted text-foreground"
+                  tag === selectedTag ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted text-foreground"
                 }`}
               >
                 {tag}
@@ -302,7 +289,7 @@ export default function WorkoutsPage() {
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    {workout.tags.map(tag => (
+                    {workout.tags.map((tag) => (
                       <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded">
                         {tag}
                       </span>
@@ -322,7 +309,7 @@ export default function WorkoutsPage() {
                       </svg>
                       {workout.duration}
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleStart(workout)}
                       className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
                     >
@@ -343,7 +330,9 @@ export default function WorkoutsPage() {
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-gray-900">{activeWorkout.title}</h3>
-                <p className="text-sm text-gray-600">{activeWorkout.duration} • {activeWorkout.difficulty}</p>
+                <p className="text-sm text-gray-600">
+                  {activeWorkout.duration} • {activeWorkout.difficulty}
+                </p>
               </div>
               <button
                 onClick={handleClose}
@@ -354,7 +343,7 @@ export default function WorkoutsPage() {
                 </svg>
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="aspect-video w-full bg-black rounded-lg overflow-hidden mb-6">
                 <iframe
@@ -367,30 +356,40 @@ export default function WorkoutsPage() {
                   allowFullScreen
                 ></iframe>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-2">About This Workout</h4>
                   <p className="text-gray-600">{activeWorkout.description}</p>
                 </div>
-                
+
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <span className="flex items-center gap-1">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     {activeWorkout.duration}
                   </span>
                   <span className="flex items-center gap-1">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     {activeWorkout.exercises} exercises
                   </span>
                 </div>
 
                 <div className="flex gap-2 flex-wrap">
-                  {activeWorkout.tags.map(tag => (
+                  {activeWorkout.tags.map((tag) => (
                     <span key={tag} className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
                       {tag}
                     </span>
@@ -403,10 +402,10 @@ export default function WorkoutsPage() {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-border mt-16">
+      <footer className="border-t border-border/50 mt-16">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center text-sm text-muted-foreground">
-            © 2025 Vibe Coach. AI-powered fitness coaching for everyone.
+            © 2025 Spottr. AI-powered fitness coaching for everyone.
           </p>
         </div>
       </footer>

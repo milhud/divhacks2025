@@ -3,11 +3,11 @@
 ## Option 1: Vercel (EASIEST - 5 minutes)
 
 ### Step 1: Push to GitHub
-```bash
+\`\`\`bash
 git add .
 git commit -m "Deploy to Vercel"
 git push origin main
-```
+\`\`\`
 
 ### Step 2: Deploy on Vercel
 1. Go to [vercel.com](https://vercel.com)
@@ -29,27 +29,27 @@ git push origin main
 ## Option 2: Railway (ALSO EASY - 10 minutes)
 
 ### Step 1: Install Railway CLI
-```bash
+\`\`\`bash
 npm install -g @railway/cli
-```
+\`\`\`
 
 ### Step 2: Deploy
-```bash
+\`\`\`bash
 railway login
 railway init
 railway up
-```
+\`\`\`
 
 ### Step 3: Add Environment Variables
-```bash
+\`\`\`bash
 railway variables set NEXT_PUBLIC_SUPABASE_URL=your_url
 railway variables set OPENAI_API_KEY=your_key
-```
+\`\`\`
 
 ### Step 4: Shut Down
-```bash
+\`\`\`bash
 railway down
-```
+\`\`\`
 **Cost: $5/month when running, $0 when stopped**
 
 ---
@@ -58,11 +58,11 @@ railway down
 
 ### Step 1: Build Command
 Add `netlify.toml`:
-```toml
+\`\`\`toml
 [build]
   command = "npm run build"
   publish = ".next"
-```
+\`\`\`
 
 ### Step 2: Deploy
 1. Go to [netlify.com](https://netlify.com)

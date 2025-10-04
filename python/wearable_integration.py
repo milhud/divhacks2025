@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Wearable Device Integration for Vibe Coach
 Supports Apple Watch, Fitbit, Garmin, and other fitness trackers

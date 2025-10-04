@@ -1,4 +1,3 @@
-// Diagnostic tool to check Supabase configuration
 export function checkSupabaseConfig() {
   const issues: string[] = []
   const warnings: string[] = []

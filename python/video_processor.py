@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Video Processing Pipeline for Vibe Coach
 Processes workout videos and returns pose analysis data

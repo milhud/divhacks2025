@@ -19,13 +19,13 @@
 - ✅ Verify file is named exactly `.env.local` (not `.env` or `.env.local.txt`)
 
 **Check**:
-```bash
+\`\`\`bash
 # Make sure file exists
 ls -la .env.local
 
 # Check contents (don't commit this!)
 cat .env.local
-```
+\`\`\`
 
 ### 2. Authentication Not Working
 
@@ -38,10 +38,10 @@ cat .env.local
 - ✅ Check Supabase project is active (not paused)
 
 **Test**:
-```bash
+\`\`\`bash
 # Test Supabase connection
 curl -H "apikey: YOUR_ANON_KEY" https://YOUR_PROJECT.supabase.co/rest/v1/
-```
+\`\`\`
 
 ### 3. Video Upload Fails
 
@@ -82,10 +82,10 @@ curl -H "apikey: YOUR_ANON_KEY" https://YOUR_PROJECT.supabase.co/rest/v1/
 - ✅ Check API key has correct permissions
 
 **Test OpenAI**:
-```bash
+\`\`\`bash
 curl https://api.openai.com/v1/models \
   -H "Authorization: Bearer YOUR_API_KEY"
-```
+\`\`\`
 
 ## Step-by-Step Debugging
 
@@ -130,13 +130,13 @@ curl https://api.openai.com/v1/models \
 
 Make sure your `.env.local` has these exact variable names:
 
-```env
+\`\`\`env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ... (long string)
 SUPABASE_SERVICE_ROLE_KEY=eyJ... (long string)
 OPENAI_API_KEY=sk-... (starts with sk-)
 NEXTAUTH_SECRET=random-string-here
-```
+\`\`\`
 
 ## Still Having Issues?
 

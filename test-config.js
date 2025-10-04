@@ -1,4 +1,3 @@
-// Simple test script to check configuration
 const fs = require('fs');
 const path = require('path');
 

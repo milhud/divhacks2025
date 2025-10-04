@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import type React from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
@@ -57,31 +58,31 @@ export function VideoUpload() {
     }
 
     setIsUploading(true)
-    
+
     try {
       // Real backend integration
       const formData = new FormData()
-      formData.append('video', selectedFile)
-      formData.append('userId', user.id)
-      formData.append('workoutId', 'temp-workout-id')
+      formData.append("video", selectedFile)
+      formData.append("userId", user.id)
+      formData.append("workoutId", "temp-workout-id")
 
       // Upload video
-      const uploadResponse = await fetch('/api/video/upload', {
-        method: 'POST',
+      const uploadResponse = await fetch("/api/video/upload", {
+        method: "POST",
         body: formData,
       })
 
       if (!uploadResponse.ok) {
-        throw new Error('Video upload failed')
+        throw new Error("Video upload failed")
       }
 
       const uploadData = await uploadResponse.json()
 
       // Start pose analysis
-      const analysisResponse = await fetch('/api/pose/analyze', {
-        method: 'POST',
+      const analysisResponse = await fetch("/api/pose/analyze", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           sessionId: uploadData.sessionId,
@@ -90,38 +91,37 @@ export function VideoUpload() {
       })
 
       if (!analysisResponse.ok) {
-        throw new Error('Pose analysis failed')
+        throw new Error("Pose analysis failed")
       }
 
       const analysisData = await analysisResponse.json()
 
       // Generate AI feedback
-      const feedbackResponse = await fetch('/api/feedback/generate', {
-        method: 'POST',
+      const feedbackResponse = await fetch("/api/feedback/generate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           sessionId: uploadData.sessionId,
           poseData: analysisData.analysis,
-          workoutType: 'General Workout',
+          workoutType: "General Workout",
         }),
       })
 
       if (!feedbackResponse.ok) {
-        throw new Error('AI feedback generation failed')
+        throw new Error("AI feedback generation failed")
       }
 
       const feedbackData = await feedbackResponse.json()
 
       setAnalysisResult({
         ...analysisData.analysis,
-        feedback: feedbackData.feedback
+        feedback: feedbackData.feedback,
       })
       setSelectedFile(null)
-
     } catch (error: any) {
-      console.error('Upload error:', error)
+      console.error("Upload error:", error)
       alert(`Upload failed: ${error.message}`)
     } finally {
       setIsUploading(false)
@@ -137,7 +137,7 @@ export function VideoUpload() {
   }
 
   return (
-    <Card className="p-8 bg-card border-border">
+    <Card className="p-8 bg-card border-border shadow-lg">
       <div className="space-y-6">
         {/* Upload Area */}
         <div
@@ -146,13 +146,13 @@ export function VideoUpload() {
           onDragLeave={handleDragLeave}
           className={`
             relative border-2 border-dashed rounded-xl p-12 text-center transition-all
-            ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50"}
+            ${isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 hover:bg-muted/50"}
           `}
         >
           <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileInputChange} className="hidden" />
 
           <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-primary/15 rounded-full flex items-center justify-center">
               <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -164,7 +164,7 @@ export function VideoUpload() {
             </div>
 
             <div>
-              <p className="text-lg font-semibold mb-1">
+              <p className="text-lg font-semibold mb-1 text-foreground">
                 {selectedFile ? selectedFile.name : "Drop your workout video here"}
               </p>
               <p className="text-sm text-muted-foreground">
@@ -175,13 +175,17 @@ export function VideoUpload() {
             </div>
 
             {!selectedFile && (
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="mt-2">
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                className="mt-2 border-2 font-semibold"
+              >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                   />
                 </svg>
                 Choose File
@@ -222,12 +226,12 @@ export function VideoUpload() {
           <Button
             onClick={handleUpload}
             disabled={!selectedFile || isUploading || !user}
-            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
             size="lg"
           >
             {isUploading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path
                     className="opacity-75"
@@ -239,7 +243,7 @@ export function VideoUpload() {
               </>
             ) : (
               <>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 Analyze Form
@@ -247,7 +251,12 @@ export function VideoUpload() {
             )}
           </Button>
           {selectedFile && (
-            <Button variant="outline" size="lg" onClick={() => fileInputRef.current?.click()}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 font-semibold"
+            >
               Change Video
             </Button>
           )}
@@ -255,28 +264,33 @@ export function VideoUpload() {
 
         {/* Analysis Results */}
         {analysisResult && (
-          <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+          <div className="p-6 bg-accent/10 border-2 border-accent rounded-lg">
             <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
-              <h3 className="text-lg font-semibold text-green-900">Analysis Complete!</h3>
+              <h3 className="text-lg font-semibold text-foreground">Analysis Complete!</h3>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{analysisResult.form_score}%</div>
-                <div className="text-sm text-green-700">Form Score</div>
+              <div className="text-center p-3 bg-card rounded-lg border border-border">
+                <div className="text-2xl font-bold text-accent">{analysisResult.form_score}%</div>
+                <div className="text-sm text-muted-foreground">Form Score</div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{analysisResult.rep_count}</div>
-                <div className="text-sm text-green-700">Reps Counted</div>
+              <div className="text-center p-3 bg-card rounded-lg border border-border">
+                <div className="text-2xl font-bold text-accent">{analysisResult.rep_count}</div>
+                <div className="text-sm text-muted-foreground">Reps Counted</div>
               </div>
             </div>
 
             <div>
-              <h4 className="font-medium text-green-900 mb-2">AI Feedback:</h4>
-              <div className="text-green-800 text-sm">
+              <h4 className="font-medium text-foreground mb-2">AI Feedback:</h4>
+              <div className="text-foreground/80 text-sm">
                 <MarkdownRenderer content={analysisResult.feedback} />
               </div>
             </div>
@@ -284,9 +298,9 @@ export function VideoUpload() {
         )}
 
         {/* Pro Tip */}
-        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex items-start gap-3 p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
           <svg
-            className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+            className="w-5 h-5 text-primary flex-shrink-0 mt-0.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -299,8 +313,8 @@ export function VideoUpload() {
             />
           </svg>
           <div className="text-sm leading-relaxed">
-            <p className="font-medium text-blue-900 mb-1">Pro Tip</p>
-            <p className="text-blue-800">
+            <p className="font-semibold text-foreground mb-1">Pro Tip</p>
+            <p className="text-foreground/80">
               For best results, record your workout from the side with your full body visible. Good lighting and a
               stable camera position help our AI provide more accurate feedback.
             </p>

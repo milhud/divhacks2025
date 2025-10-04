@@ -1,5 +1,3 @@
-#!/bin/bash
-
 echo "🚀 Installing Vibe Coach dependencies..."
 
 # Clean up any existing node_modules

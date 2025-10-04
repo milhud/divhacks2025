@@ -100,7 +100,7 @@
 ## 📝 Technical Details
 
 ### Workouts Data Structure:
-```javascript
+\`\`\`javascript
 {
   id: 1,
   title: "Full Body Strength",
@@ -112,7 +112,7 @@
   youtubeUrl: "https://www.youtube.com/embed/...",
   videoId: "..."
 }
-```
+\`\`\`
 
 ### Tag System:
 - Automatically extracts unique tags from all workouts

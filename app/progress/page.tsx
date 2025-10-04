@@ -54,17 +54,15 @@ export default function ProgressPage() {
   const { user, signOut } = useAuth()
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="border-b border-border">
+      <header className="border-b border-border/50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">V</span>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <span className="text-2xl font-bold text-primary-foreground">S</span>
             </div>
-            <h1 className="text-2xl font-bold text-balance">
-              Vibe <span className="text-primary">Coach</span>
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">Spottr</h1>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -86,15 +84,10 @@ export default function ProgressPage() {
           {user ? (
             <div className="flex items-center gap-4">
               <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <Avatar 
-                  name={user?.user_metadata?.full_name || user?.email || 'User'} 
-                  size="sm" 
-                />
-                <span className="text-sm text-muted-foreground hover:text-foreground">
-                  Profile
-                </span>
+                <Avatar name={user?.user_metadata?.full_name || user?.email || "User"} size="sm" />
+                <span className="text-sm text-muted-foreground hover:text-foreground">Profile</span>
               </Link>
-              <button 
+              <button
                 onClick={() => signOut()}
                 className="px-4 py-2 bg-card hover:bg-muted rounded-lg text-sm font-medium transition-colors"
               >
@@ -102,7 +95,7 @@ export default function ProgressPage() {
               </button>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setShowAuth(true)}
               className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
             >
@@ -117,7 +110,7 @@ export default function ProgressPage() {
         <div className="max-w-7xl mx-auto">
           {/* Page Header */}
           <div className="mb-8">
-            <h2 className="text-4xl font-bold mb-3">Your Progress</h2>
+            <h2 className="text-4xl font-bold mb-3 text-foreground">Your Progress</h2>
             <p className="text-lg text-muted-foreground">Track your improvement and celebrate your wins</p>
           </div>
 
@@ -224,10 +217,10 @@ export default function ProgressPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border mt-16">
+      <footer className="border-t border-border/50 mt-16">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center text-sm text-muted-foreground">
-            © 2025 Vibe Coach. AI-powered fitness coaching for everyone.
+            © 2025 Spottr. AI-powered fitness coaching for everyone.
           </p>
         </div>
       </footer>

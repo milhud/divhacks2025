@@ -6,7 +6,7 @@
 
 Create a file named `.env.local` in your project root with these variables:
 
-```env
+\`\`\`env
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -21,7 +21,7 @@ NEXTAUTH_SECRET=your_random_secret
 # File Upload Configuration
 MAX_FILE_SIZE=52428800
 ALLOWED_VIDEO_TYPES=video/mp4,video/mov,video/avi,video/webm
-```
+\`\`\`
 
 ### 2. Get Supabase Credentials
 
@@ -40,9 +40,9 @@ ALLOWED_VIDEO_TYPES=video/mp4,video/mov,video/avi,video/webm
 ### 4. Generate NextAuth Secret
 
 Run this command to generate a random secret:
-```bash
+\`\`\`bash
 openssl rand -base64 32
-```
+\`\`\`
 Copy the result and paste it as `NEXTAUTH_SECRET`
 
 ### 5. Set up Database
@@ -53,9 +53,9 @@ Copy the result and paste it as `NEXTAUTH_SECRET`
 
 ### 6. Restart Development Server
 
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 ## What You Get
 

@@ -14,16 +14,16 @@ This guide will help you deploy your Vibe Coach Next.js app to Google Cloud Plat
 ## STEP 1: INITIAL SETUP
 
 ### 1.1 Install Google Cloud SDK
-```bash
+\`\`\`bash
 # Download and install from: https://cloud.google.com/sdk/docs/install
 # Or use package manager:
 # Windows: choco install gcloudsdk
 # macOS: brew install google-cloud-sdk
 # Linux: curl https://sdk.cloud.google.com | bash
-```
+\`\`\`
 
 ### 1.2 Authenticate and Set Project
-```bash
+\`\`\`bash
 # Login to Google Cloud
 gcloud auth login
 
@@ -37,13 +37,13 @@ gcloud config set project vibe-coach-app
 gcloud services enable compute.googleapis.com
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable run.googleapis.com
-```
+\`\`\`
 
 ## STEP 2: PREPARE YOUR APP
 
 ### 2.1 Update Environment Variables
 Create a `.env.production` file:
-```bash
+\`\`\`bash
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -54,11 +54,11 @@ OPENAI_API_KEY=your_openai_api_key
 
 # App Configuration
 NEXT_PUBLIC_BASE_URL=https://your-app-url.run.app
-```
+\`\`\`
 
 ### 2.2 Create Dockerfile
 Create `Dockerfile` in project root:
-```dockerfile
+\`\`\`dockerfile
 FROM node:18-alpine AS base
 
 # Install dependencies only when needed
@@ -111,11 +111,11 @@ ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
 CMD ["node", "server.js"]
-```
+\`\`\`
 
 ### 2.3 Update next.config.mjs
 Add standalone output:
-```javascript
+\`\`\`javascript
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -123,12 +123,12 @@ const nextConfig = {
 }
 
 export default nextConfig
-```
+\`\`\`
 
 ## STEP 3: DEPLOY TO GOOGLE CLOUD RUN
 
 ### 3.1 Build and Deploy
-```bash
+\`\`\`bash
 # Build the container image
 gcloud builds submit --tag gcr.io/vibe-coach-app/vibe-coach
 
@@ -143,27 +143,27 @@ gcloud run deploy vibe-coach \
   --cpu 2 \
   --max-instances 10 \
   --set-env-vars="NODE_ENV=production"
-```
+\`\`\`
 
 ### 3.2 Get the Service URL
-```bash
+\`\`\`bash
 # Get the service URL
 gcloud run services describe vibe-coach --region=us-central1 --format="value(status.url)"
-```
+\`\`\`
 
 ## STEP 4: SET UP STATIC IP
 
 ### 4.1 Reserve a Static IP
-```bash
+\`\`\`bash
 # Reserve a global static IP
 gcloud compute addresses create vibe-coach-ip --global
 
 # Get the IP address
 gcloud compute addresses describe vibe-coach-ip --global
-```
+\`\`\`
 
 ### 4.2 Set Up Load Balancer
-```bash
+\`\`\`bash
 # Create a backend service
 gcloud compute backend-services create vibe-coach-backend \
   --global \
@@ -196,7 +196,7 @@ gcloud compute forwarding-rules create vibe-coach-rule \
   --target-http-proxy vibe-coach-proxy \
   --address vibe-coach-ip \
   --ports 80
-```
+\`\`\`
 
 ## STEP 5: CONFIGURE DNS (OPTIONAL)
 
@@ -207,44 +207,44 @@ If you have a domain:
 3. Wait for DNS propagation (up to 48 hours)
 
 ### 5.2 Test the Deployment
-```bash
+\`\`\`bash
 # Test the health endpoint
 curl https://your-static-ip/api/health
 
 # Test the main app
 curl https://your-static-ip
-```
+\`\`\`
 
 ## STEP 6: MONITORING AND MAINTENANCE
 
 ### 6.1 View Logs
-```bash
+\`\`\`bash
 # View Cloud Run logs
 gcloud logs read --service=vibe-coach --limit=50
 
 # View in real-time
 gcloud logs tail --service=vibe-coach
-```
+\`\`\`
 
 ### 6.2 Monitor Performance
-```bash
+\`\`\`bash
 # Check service status
 gcloud run services describe vibe-coach --region=us-central1
 
 # View metrics in Google Cloud Console
 # Go to: Cloud Run > Services > vibe-coach > Metrics
-```
+\`\`\`
 
 ## STEP 7: SHUTTING DOWN (COST SAVINGS)
 
 ### 7.1 Stop Cloud Run Service
-```bash
+\`\`\`bash
 # Delete the Cloud Run service
 gcloud run services delete vibe-coach --region=us-central1 --quiet
-```
+\`\`\`
 
 ### 7.2 Delete Load Balancer Components
-```bash
+\`\`\`bash
 # Delete forwarding rule
 gcloud compute forwarding-rules delete vibe-coach-rule --global --quiet
 
@@ -259,25 +259,25 @@ gcloud compute backend-services delete vibe-coach-backend --global --quiet
 
 # Delete health check
 gcloud compute health-checks delete vibe-coach-health-check --quiet
-```
+\`\`\`
 
 ### 7.3 Release Static IP (IMPORTANT!)
-```bash
+\`\`\`bash
 # Release the static IP to stop billing
 gcloud compute addresses delete vibe-coach-ip --global --quiet
-```
+\`\`\`
 
 ### 7.4 Clean Up Container Images
-```bash
+\`\`\`bash
 # Delete container images
 gcloud container images delete gcr.io/vibe-coach-app/vibe-coach --quiet
-```
+\`\`\`
 
 ### 7.5 Delete Project (Complete Cleanup)
-```bash
+\`\`\`bash
 # Delete the entire project (WARNING: This deletes everything!)
 gcloud projects delete vibe-coach-app --quiet
-```
+\`\`\`
 
 ## COST ESTIMATION
 
@@ -302,7 +302,7 @@ gcloud projects delete vibe-coach-app --quiet
 4. **High costs**: Make sure to release static IP when shutting down
 
 ### Useful Commands:
-```bash
+\`\`\`bash
 # Check project billing
 gcloud billing accounts list
 
@@ -311,7 +311,7 @@ gcloud asset search-all-resources --project=vibe-coach-app
 
 # Check quotas
 gcloud compute project-info describe --project=vibe-coach-app
-```
+\`\`\`
 
 ## SECURITY NOTES
 
@@ -322,7 +322,7 @@ gcloud compute project-info describe --project=vibe-coach-app
 
 ## QUICK START SUMMARY
 
-```bash
+\`\`\`bash
 # 1. Setup
 gcloud auth login
 gcloud projects create vibe-coach-app
@@ -338,7 +338,7 @@ gcloud run services describe vibe-coach --region=us-central1 --format="value(sta
 # 4. Shutdown (when done)
 gcloud run services delete vibe-coach --region=us-central1 --quiet
 gcloud projects delete vibe-coach-app --quiet
-```
+\`\`\`
 
 ## SUPPORT
 - Google Cloud Documentation: https://cloud.google.com/docs

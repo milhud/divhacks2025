@@ -12,9 +12,9 @@ This guide will help you set up the complete backend infrastructure for the Vibe
 ## 1. Environment Setup
 
 1. Copy the environment template:
-   ```bash
+   \`\`\`bash
    cp .env.local.example .env.local
-   ```
+   \`\`\`
 
 2. Fill in your environment variables in `.env.local`:
 
@@ -36,9 +36,9 @@ This guide will help you set up the complete backend infrastructure for the Vibe
 ### NextAuth Setup
 
 1. Generate a random secret for NextAuth:
-   ```bash
+   \`\`\`bash
    openssl rand -base64 32
-   ```
+   \`\`\`
 2. Paste the result as `NEXTAUTH_SECRET`
 
 ## 2. Database Setup
@@ -56,23 +56,23 @@ This guide will help you set up the complete backend infrastructure for the Vibe
 
 ## 4. Install Dependencies
 
-```bash
+\`\`\`bash
 npm install
 # or
 pnpm install
 # or
 yarn install
-```
+\`\`\`
 
 ## 5. Run the Development Server
 
-```bash
+\`\`\`bash
 npm run dev
 # or
 pnpm dev
 # or
 yarn dev
-```
+\`\`\`
 
 ## 6. Test the Setup
 

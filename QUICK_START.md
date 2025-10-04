@@ -7,28 +7,28 @@ This is a simplified, clean version of the Vibe Coach AI fitness assistant with 
 ### 1. Install Dependencies
 
 **Windows:**
-```bash
+\`\`\`bash
 install.bat
-```
+\`\`\`
 
 **Mac/Linux:**
-```bash
+\`\`\`bash
 chmod +x install.sh
 ./install.sh
-```
+\`\`\`
 
 **Manual:**
-```bash
+\`\`\`bash
 rm -rf node_modules package-lock.json
 npm install
-```
+\`\`\`
 
 ### 2. Environment Setup
 
 1. Copy the environment file:
-   ```bash
+   \`\`\`bash
    cp .env.local.example .env.local
-   ```
+   \`\`\`
 
 2. Get your Supabase credentials:
    - Go to [supabase.com](https://supabase.com)
@@ -41,13 +41,13 @@ npm install
    - Create an API key
 
 4. Fill in `.env.local`:
-   ```env
+   \`\`\`env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    OPENAI_API_KEY=your_openai_api_key
    NEXTAUTH_SECRET=your_random_secret
-   ```
+   \`\`\`
 
 ### 3. Database Setup
 
@@ -57,9 +57,9 @@ npm install
 
 ### 4. Run the App
 
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 Open [http://localhost:3000](http://localhost:3000)
 
@@ -139,7 +139,7 @@ Simple, clean components without complex dependencies:
 
 ## 📁 Project Structure
 
-```
+\`\`\`
 ├── app/
 │   ├── api/           # API routes
 │   ├── globals.css    # Global styles
@@ -156,7 +156,7 @@ Simple, clean components without complex dependencies:
 ├── supabase/
 │   └── schema.sql     # Database schema
 └── public/            # Static assets
-```
+\`\`\`
 
 ## 🎉 Success!
 
