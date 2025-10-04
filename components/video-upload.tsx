@@ -476,15 +476,27 @@ export function VideoUpload() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center p-3 bg-white rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                 <div className="text-2xl font-bold text-green-600">{analysisResult.form_score}%</div>
-                <div className="text-sm text-green-700">Form Score</div>
+                <div className="text-xs text-green-700">Form Score</div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{analysisResult.rep_count}</div>
-                <div className="text-sm text-green-700">Reps Counted</div>
+              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                <div className="text-2xl font-bold text-blue-600">{analysisResult.rep_count}</div>
+                <div className="text-xs text-blue-700">Reps Counted</div>
               </div>
+              {analysisResult.tempo_rating && (
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <div className="text-lg font-bold text-purple-600 capitalize">{analysisResult.tempo_rating}</div>
+                  <div className="text-xs text-purple-700">Tempo</div>
+                </div>
+              )}
+              {analysisResult.avg_velocity && (
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <div className="text-xl font-bold text-orange-600">{analysisResult.avg_velocity}°/s</div>
+                  <div className="text-xs text-orange-700">Velocity</div>
+                </div>
+              )}
             </div>
 
             <div>

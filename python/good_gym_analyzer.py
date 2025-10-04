@@ -40,7 +40,7 @@ class GoodGymCounter:
     
     def smooth_angle(self, angle):
         """Median filter + average (Good-GYM approach)"""
-        if angle is None:
+        if angle is None: 
             return None
         
         self.angle_history.append(angle)
@@ -263,15 +263,29 @@ def analyze_video(video_path, exercise_type=None):
     
     rep_count = counter.counter
     
+    # Calculate velocity (angles per second)
+    velocities = []
+    for i in range(1, len(angle_sequence)):
+        time_diff = (1 / fps) * 5  # We process every 5th frame
+        angle_diff = abs(angle_sequence[i] - angle_sequence[i-1])
+        velocity = angle_diff / time_diff if time_diff > 0 else 0
+        velocities.append(velocity)
+    
+    avg_velocity = np.mean(velocities) if velocities else 0
+    max_velocity = max(velocities) if velocities else 0
+    
     print(f"\n[FINAL CLASSIFICATION]", file=sys.stderr)
     print(f"  Exercise: {exercise_type}", file=sys.stderr)
     print(f"  Reps: {rep_count}", file=sys.stderr)
+    print(f"  Avg velocity: {avg_velocity:.1f}°/s", file=sys.stderr)
+    print(f"  Max velocity: {max_velocity:.1f}°/s", file=sys.stderr)
     
     # Real confidence from MediaPipe
     confidence = np.mean(landmark_confidences) * 100
     
-    # Form score: based on range of motion
-    form_score = calculate_form_score(angle_sequence)
+    # Form score: exercise-specific biomechanics analysis
+    print(f"\n[FORM ANALYSIS]", file=sys.stderr)
+    form_score = calculate_form_score(exercise_type, angle_sequence)
     
     return {
         'exercise_type': exercise_type,
@@ -281,7 +295,10 @@ def analyze_video(video_path, exercise_type=None):
         'duration': round(duration, 1),
         'total_frames': total_frames,
         'analyzed_frames': pose_count,
-        'analysis_method': 'good_gym_state_machine'
+        'avg_velocity': round(avg_velocity, 1),
+        'max_velocity': round(max_velocity, 1),
+        'tempo_rating': 'explosive' if avg_velocity > 100 else 'controlled' if avg_velocity > 50 else 'slow',
+        'analysis_method': 'good_gym_state_machine_advanced'
     }
 
 def calculate_angle_from_lm(a, b, c):
@@ -297,21 +314,98 @@ def calculate_angle_from_lm(a, b, c):
     angle = np.arccos(np.clip(cosine, -1.0, 1.0))
     return np.degrees(angle)
 
-def calculate_form_score(angles):
-    """Score based on range of motion"""
+def calculate_form_score(exercise_type, angles):
+    """Advanced form scoring with exercise-specific biomechanics"""
     min_angle = min(angles)
     max_angle = max(angles)
     rom = max_angle - min_angle
     
-    # Score based on ROM (larger ROM = better form)
-    if rom > 60:
-        return 95  # Excellent ROM
-    elif rom > 45:
-        return 85  # Good ROM
-    elif rom > 30:
-        return 75  # Acceptable ROM
+    # Exercise-specific scoring
+    if exercise_type == 'squat':
+        # Ideal squat: knee should go below 90° (angle > 90° is BAD in our measurement)
+        # and return to full extension (170-180°)
+        score = 100
+        
+        # Check depth (lower angle = deeper squat)
+        if min_angle > 110:  # Shallow squat
+            score -= 20
+            print(f"  ⚠️ Shallow depth detected (min: {min_angle:.1f}°)", file=sys.stderr)
+        elif min_angle > 90:  # Quarter squat
+            score -= 10
+            print(f"  ⚠️ Partial depth (min: {min_angle:.1f}°)", file=sys.stderr)
+        else:  # Good depth
+            print(f"  ✅ Good depth (min: {min_angle:.1f}°)", file=sys.stderr)
+        
+        # Check lockout at top
+        if max_angle < 160:  # Not fully standing
+            score -= 15
+            print(f"  ⚠️ Incomplete lockout (max: {max_angle:.1f}°)", file=sys.stderr)
+        else:
+            print(f"  ✅ Full lockout (max: {max_angle:.1f}°)", file=sys.stderr)
+        
+        # Check consistency (std dev of bottom positions)
+        bottom_angles = [a for a in angles if a < 120]
+        if len(bottom_angles) > 1:
+            consistency = np.std(bottom_angles)
+            if consistency > 15:  # Inconsistent depth
+                score -= 10
+                print(f"  ⚠️ Inconsistent depth (std: {consistency:.1f}°)", file=sys.stderr)
+            else:
+                print(f"  ✅ Consistent form (std: {consistency:.1f}°)", file=sys.stderr)
+        
+        return max(60, score)  # Minimum 60
+    
+    elif exercise_type == 'push_up':
+        score = 100
+        
+        # Check if elbows bend enough (< 100° is good)
+        if min_angle > 120:  # Shallow push-up
+            score -= 25
+            print(f"  ⚠️ Shallow push-up (min: {min_angle:.1f}°)", file=sys.stderr)
+        elif min_angle > 100:
+            score -= 10
+            print(f"  ⚠️ Partial depth (min: {min_angle:.1f}°)", file=sys.stderr)
+        else:
+            print(f"  ✅ Full depth (min: {min_angle:.1f}°)", file=sys.stderr)
+        
+        # Check full extension
+        if max_angle < 160:
+            score -= 15
+            print(f"  ⚠️ Incomplete extension (max: {max_angle:.1f}°)", file=sys.stderr)
+        else:
+            print(f"  ✅ Full extension (max: {max_angle:.1f}°)", file=sys.stderr)
+        
+        return max(60, score)
+    
+    elif exercise_type == 'deadlift':
+        score = 100
+        
+        # Check hip hinge depth
+        if min_angle > 80:  # Not enough hip flexion
+            score -= 20
+            print(f"  ⚠️ Insufficient hip hinge (min: {min_angle:.1f}°)", file=sys.stderr)
+        else:
+            print(f"  ✅ Good hip hinge (min: {min_angle:.1f}°)", file=sys.stderr)
+        
+        # Check full hip extension at top
+        if max_angle < 150:
+            score -= 15
+            print(f"  ⚠️ Incomplete hip extension (max: {max_angle:.1f}°)", file=sys.stderr)
+        else:
+            print(f"  ✅ Full hip extension (max: {max_angle:.1f}°)", file=sys.stderr)
+        
+        return max(60, score)
+    
     else:
-        return 60  # Limited ROM
+        # Generic ROM-based score
+        if rom > 60:
+            return 95
+        elif rom > 45:
+            return 85
+        elif rom > 30:
+            return 75
+        else:
+            return 60
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or len(sys.argv) > 3:
