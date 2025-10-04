@@ -446,16 +446,35 @@ def process_video_frame(frame_data: str, exercise_type: str = 'general') -> Dict
         return {"error": str(e)}
 
 def main():
-    """Main function for testing"""
-    # Example usage
-    analyzer = LiveMovementAnalyzer()
+    """Main function for command-line usage"""
+    import sys
     
-    # Test with a sample frame (you would replace this with actual camera input)
-    test_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-    result = analyzer.analyze_frame(test_frame, 'squat')
+    if len(sys.argv) < 2:
+        logger.error("Usage: python live_analysis.py <frame_data_file>")
+        sys.exit(1)
     
-    print("Analysis Result:")
-    print(json.dumps(result, indent=2))
+    try:
+        # Read frame data from JSON file
+        with open(sys.argv[1], 'r') as f:
+            data = json.load(f)
+        
+        frame_data = data.get('frameData')
+        exercise_type = data.get('exerciseType', 'general')
+        
+        if not frame_data:
+            logger.error("No frame data provided")
+            sys.exit(1)
+        
+        # Process the frame
+        result = process_video_frame(frame_data, exercise_type)
+        
+        # Output result as JSON
+        print(json.dumps(result))
+        
+    except Exception as e:
+        logger.error(f"Error in main: {str(e)}")
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

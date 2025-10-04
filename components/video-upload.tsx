@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
 import { MarkdownRenderer } from "./markdown-renderer"
 import { LiveCameraFeed } from "./live-camera-feed"
+import { LiveMediaPipeCamera } from "./live-mediapipe-camera"
 import { PainInput } from "./pain-input"
 
 export function VideoUpload() {
@@ -844,17 +845,17 @@ export function VideoUpload() {
           </>
         )}
 
-        {/* Live Camera Mode */}
+        {/* Live Camera Mode - REAL MediaPipe with Skeleton Overlay */}
         {activeMode === 'live' && (
-          <LiveCameraFeed 
+          <LiveMediaPipeCamera 
             onAnalysisComplete={handleLiveAnalysisComplete}
-            exerciseType="General Workout"
+            exerciseType={selectedExercise || "General Workout"}
           />
         )}
 
         {/* Pain Assessment Mode */}
         {activeMode === 'pain' && (
-          <PainInput 
+          <PainInput
             onPainSubmit={handlePainSubmit}
             onMovementHurt={handleMovementHurt}
           />

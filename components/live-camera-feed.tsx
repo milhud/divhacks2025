@@ -22,6 +22,7 @@ export function LiveCameraFeed({ onAnalysisComplete, exerciseType, isProviderMod
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
 
   const startCamera = async () => {
     try {
@@ -66,18 +67,20 @@ export function LiveCameraFeed({ onAnalysisComplete, exerciseType, isProviderMod
     // Real-time analysis with Python backend
     analysisIntervalRef.current = setInterval(async () => {
       if (videoRef.current && canvasRef.current) {
-        const canvas = canvasRef.current
         const video = videoRef.current
-        const ctx = canvas.getContext('2d')
+        
+        // Create a temporary canvas for capture
+        const tempCanvas = document.createElement('canvas')
+        const ctx = tempCanvas.getContext('2d')
         
         if (ctx) {
-          canvas.width = video.videoWidth
-          canvas.height = video.videoHeight
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          tempCanvas.width = video.videoWidth
+          tempCanvas.height = video.videoHeight
+          ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height)
           
           try {
             // Convert canvas to base64
-            const frameData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
+            const frameData = tempCanvas.toDataURL('image/jpeg', 0.8).split(',')[1]
             
             // Send to Python backend for analysis
             const response = await fetch('/api/live/analyze', {
@@ -104,6 +107,11 @@ export function LiveCameraFeed({ onAnalysisComplete, exerciseType, isProviderMod
                 
                 setAnalysis(analysis)
                 onAnalysisComplete(analysis)
+                
+                // Draw skeleton overlay with the keypoints
+                if (result.analysis.keypoints && canvasRef.current && videoRef.current) {
+                  drawSkeleton(result.analysis.keypoints)
+                }
               }
             } else {
               // Fallback to mock analysis if backend fails
@@ -203,9 +211,82 @@ export function LiveCameraFeed({ onAnalysisComplete, exerciseType, isProviderMod
     setAnalysis(null)
   }
 
+  const drawSkeleton = (keypoints: any[]) => {
+    const canvas = canvasRef.current
+    const video = videoRef.current
+    if (!canvas || !video) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Set canvas size to match video
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Define skeleton connections (MediaPipe Pose connections)
+    const connections = [
+      [11, 12], // shoulders
+      [11, 13], [13, 15], // left arm
+      [12, 14], [14, 16], // right arm
+      [11, 23], [12, 24], // torso
+      [23, 24], // hips
+      [23, 25], [25, 27], // left leg
+      [24, 26], [26, 28], // right leg
+    ]
+
+    // Draw connections
+    ctx.strokeStyle = '#00FF00'
+    ctx.lineWidth = 3
+    connections.forEach(([startIdx, endIdx]) => {
+      const start = keypoints[startIdx]
+      const end = keypoints[endIdx]
+      
+      if (start && end && start.confidence > 0.5 && end.confidence > 0.5) {
+        ctx.beginPath()
+        ctx.moveTo(start.x * canvas.width, start.y * canvas.height)
+        ctx.lineTo(end.x * canvas.width, end.y * canvas.height)
+        ctx.stroke()
+      }
+    })
+
+    // Draw keypoints
+    keypoints.forEach((point, index) => {
+      if (point && point.confidence > 0.5) {
+        ctx.beginPath()
+        ctx.arc(
+          point.x * canvas.width,
+          point.y * canvas.height,
+          5,
+          0,
+          2 * Math.PI
+        )
+        ctx.fillStyle = point.confidence > 0.8 ? '#FF0000' : '#FFA500'
+        ctx.fill()
+        
+        // Draw keypoint label for major joints
+        const majorJoints = [0, 11, 12, 13, 14, 23, 24, 25, 26]
+        if (majorJoints.includes(index)) {
+          ctx.fillStyle = '#FFFFFF'
+          ctx.font = '10px Arial'
+          ctx.fillText(
+            point.name || `${index}`,
+            point.x * canvas.width + 8,
+            point.y * canvas.height - 8
+          )
+        }
+      }
+    })
+  }
+
   useEffect(() => {
     return () => {
       stopCamera()
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
     }
   }, [])
 
@@ -222,7 +303,7 @@ export function LiveCameraFeed({ onAnalysisComplete, exerciseType, isProviderMod
                 Start Camera
               </Button>
             ) : (
-              <Button onClick={stopCamera} variant="destructive">
+              <Button onClick={stopCamera} className="bg-red-600 hover:bg-red-700">
                 Stop Camera
               </Button>
             )}
@@ -245,7 +326,8 @@ export function LiveCameraFeed({ onAnalysisComplete, exerciseType, isProviderMod
           />
           <canvas
             ref={canvasRef}
-            className="hidden"
+            className={`absolute top-0 left-0 w-full h-64 md:h-96 pointer-events-none ${!isStreaming ? 'hidden' : ''}`}
+            style={{ mixBlendMode: 'screen' }}
           />
           
           {!isStreaming && (

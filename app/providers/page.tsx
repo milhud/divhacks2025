@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LiveCameraFeed } from "@/components/live-camera-feed"
+import { LiveMediaPipeCamera } from "@/components/live-mediapipe-camera"
 import { PainInput } from "@/components/pain-input"
 import Link from "next/link"
 
@@ -569,7 +569,7 @@ export default function ProvidersPage() {
               />
             )}
 
-            <LiveCameraFeed 
+            <LiveMediaPipeCamera 
               onAnalysisComplete={handleAnalysisComplete}
               isProviderMode={true}
               exerciseType={selectedPatient?.condition || "General Workout"}
