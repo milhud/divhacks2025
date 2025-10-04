@@ -37,7 +37,7 @@ if (fs.existsSync(envPath)) {
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY', 
     'SUPABASE_SERVICE_ROLE_KEY',
-    'OPENAI_API_KEY',
+    'GEMINI_API_KEY',
     'NEXTAUTH_SECRET'
   ];
   
@@ -58,7 +58,7 @@ if (fs.existsSync(envPath)) {
   
 } else {
   console.log('❌ .env.local file not found');
-  console.log('📝 Create .env.local with your Supabase and OpenAI credentials');
+  console.log('📝 Create .env.local with your Supabase and Gemini API credentials');
 }
 
 console.log('\n🚀 Next steps:');

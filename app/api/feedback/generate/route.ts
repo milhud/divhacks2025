@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { supabaseAdmin } from '@/lib/supabase'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,23 +50,15 @@ Please provide detailed feedback using markdown formatting:
 Use **bold** for emphasis, bullet points for lists, and keep the tone encouraging and constructive.
     `.trim()
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert fitness coach with years of experience in form analysis and corrective exercise. Provide detailed, constructive feedback that helps users improve their workout form and technique."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
-    })
-
-    const aiFeedback = completion.choices[0]?.message?.content || "Unable to generate feedback at this time."
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+    
+    const systemPrompt = "You are an expert fitness coach with years of experience in form analysis and corrective exercise. Provide detailed, constructive feedback that helps users improve their workout form and technique."
+    
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`
+    
+    const result = await model.generateContent(fullPrompt)
+    const response = await result.response
+    const aiFeedback = response.text() || "Unable to generate feedback at this time."
 
     // Update the session with AI feedback
     const { error: updateError } = await supabaseAdmin

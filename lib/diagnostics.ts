@@ -21,10 +21,10 @@ export function checkSupabaseConfig() {
     issues.push('SUPABASE_SERVICE_ROLE_KEY is still set to placeholder value')
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    warnings.push('OPENAI_API_KEY is missing - AI feedback will use fallback')
-  } else if (process.env.OPENAI_API_KEY === 'your_openai_api_key') {
-    warnings.push('OPENAI_API_KEY is still set to placeholder value')
+  if (!process.env.GEMINI_API_KEY) {
+    warnings.push('GEMINI_API_KEY is missing - AI feedback will use fallback')
+  } else if (process.env.GEMINI_API_KEY === 'your_gemini_api_key') {
+    warnings.push('GEMINI_API_KEY is still set to placeholder value')
   }
 
   return {

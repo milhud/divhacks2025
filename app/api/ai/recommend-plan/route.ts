@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,35 +57,22 @@ Please provide a comprehensive recommendation using markdown formatting:
 
 ## Additional Advice
 - Pro tips for success
-- Common pitfalls to avoid
-- Motivation and encouragement
-
-Use **bold** for emphasis and bullet points for easy reading.
     `.trim()
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert fitness and nutrition coach with 10+ years of experience. Provide personalized, actionable recommendations based on user needs."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 800,
-      temperature: 0.7,
-    })
-
-    const recommendation = completion.choices[0]?.message?.content || "Based on your challenges, I recommend starting with our Beginner Weight Loss program and Clean Eating meal plan. Focus on building consistent habits and gradually increasing intensity."
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+    
+    const systemPrompt = "You are an expert fitness and nutrition coach with 10+ years of experience. Provide personalized, actionable recommendations based on user needs."
+    
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`
+    
+    const result = await model.generateContent(fullPrompt)
+    const response = await result.response
+    const recommendation = response.text() || "Unable to generate recommendations at this time."
 
     return NextResponse.json({
       recommendation,
       timestamp: new Date().toISOString()
     })
-
   } catch (error) {
     console.error('AI recommendation error:', error)
     

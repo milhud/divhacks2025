@@ -6,12 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
 import { MarkdownRenderer } from "./markdown-renderer"
+import { LiveCameraFeed } from "./live-camera-feed"
+import { PoseNetCamera } from "./posenet-camera"
+import { CloudVideoUpload } from "./cloud-video-upload"
 
 export function VideoUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [analysisMode, setAnalysisMode] = useState<'upload' | 'live' | 'cloud'>('upload')
+  const [usePoseNet, setUsePoseNet] = useState(true)
+  const [selectedExercise, setSelectedExercise] = useState("squat")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
 
@@ -136,133 +142,295 @@ export function VideoUpload() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
   }
 
-  return (
-    <Card className="p-8 bg-card border-border shadow-lg">
-      <div className="space-y-6">
-        {/* Upload Area */}
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          className={`
-            relative border-2 border-dashed rounded-xl p-12 text-center transition-all
-            ${isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 hover:bg-muted/50"}
-          `}
-        >
-          <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileInputChange} className="hidden" />
+  const handleLiveAnalysisComplete = (analysis: any) => {
+    setAnalysisResult({
+      form_score: analysis.formScore,
+      rep_count: analysis.repCount,
+      feedback: analysis.feedback
+    })
+  }
 
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-primary/15 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  return (
+    <Card className="p-8 bg-gradient-to-br from-card via-card to-primary/5 border-border shadow-xl hover:shadow-2xl transition-all duration-300">
+      <div className="space-y-6">
+        {/* Mode Toggle */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-muted/30 p-2 rounded-xl shadow-inner">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAnalysisMode('upload')}
+                className={`px-4 py-3 rounded-lg font-semibold transition-all shadow-sm text-sm ${
+                  analysisMode === 'upload'
+                    ? 'bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-lg scale-105'
+                    : 'bg-card hover:bg-card/80 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                📁 Upload Video
+              </button>
+              <button
+                onClick={() => setAnalysisMode('live')}
+                className={`px-4 py-3 rounded-lg font-semibold transition-all shadow-sm text-sm ${
+                  analysisMode === 'live'
+                    ? 'bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-lg scale-105'
+                    : 'bg-card hover:bg-card/80 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                🔴 Live Camera
+              </button>
+              <button
+                onClick={() => setAnalysisMode('cloud')}
+                className={`px-4 py-3 rounded-lg font-semibold transition-all shadow-sm text-sm ${
+                  analysisMode === 'cloud'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105'
+                    : 'bg-card hover:bg-card/80 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                ☁️ Cloud AI
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content based on mode */}
+        {analysisMode === 'live' ? (
+          <div className="space-y-4">
+            {/* Analysis Mode Toggle */}
+            <div className="flex justify-center mb-4">
+              <div className="bg-muted/30 p-2 rounded-xl shadow-inner">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setUsePoseNet(true)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
+                      usePoseNet
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg scale-105'
+                        : 'bg-card hover:bg-card/80 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    🤖 AI Pose Analysis
+                  </button>
+                  <button
+                    onClick={() => setUsePoseNet(false)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
+                      !usePoseNet
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105'
+                        : 'bg-card hover:bg-card/80 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    📹 Basic Camera
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Exercise Selection */}
+            {usePoseNet && (
+              <div className="flex justify-center mb-4">
+                <div className="flex items-center gap-3 bg-gradient-to-r from-muted/50 to-muted/30 px-4 py-2 rounded-xl shadow-md">
+                  <label className="text-sm font-semibold text-foreground">Exercise:</label>
+                  <select 
+                    value={selectedExercise}
+                    onChange={(e) => setSelectedExercise(e.target.value)}
+                    className="bg-transparent text-sm font-bold text-primary border-none outline-none"
+                  >
+                    <option value="squat">🏋️ Squat</option>
+                    <option value="pushup">💪 Push-up</option>
+                    <option value="lunge">🦵 Lunge</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Camera Component */}
+            {usePoseNet ? (
+              <PoseNetCamera 
+                onAnalysisComplete={handleLiveAnalysisComplete}
+                exerciseType={selectedExercise}
+              />
+            ) : (
+              <LiveCameraFeed 
+                onAnalysisComplete={handleLiveAnalysisComplete}
+                exerciseType="General Workout"
+              />
+            )}
+          </div>
+        ) : analysisMode === 'cloud' ? (
+          <div className="space-y-4">
+            {/* Exercise Selection for Cloud */}
+            <div className="flex justify-center mb-4">
+              <div className="flex items-center gap-3 bg-gradient-to-r from-muted/50 to-muted/30 px-4 py-2 rounded-xl shadow-md">
+                <label className="text-sm font-semibold text-foreground">Exercise:</label>
+                <select 
+                  value={selectedExercise}
+                  onChange={(e) => setSelectedExercise(e.target.value)}
+                  className="bg-transparent text-sm font-bold text-primary border-none outline-none"
+                >
+                  <option value="squat">🏋️ Squat</option>
+                  <option value="pushup">💪 Push-up</option>
+                  <option value="lunge">🦵 Lunge</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Cloud Video Upload Component */}
+            <CloudVideoUpload 
+              onAnalysisComplete={handleLiveAnalysisComplete}
+              exerciseType={selectedExercise}
+            />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Upload Area */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              className={`
+                relative border-2 border-dashed rounded-xl p-12 text-center transition-all
+                ${isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 hover:bg-muted/50"}
+              `}
+            >
+              <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileInputChange} className="hidden" />
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/10 rounded-full flex items-center justify-center shadow-lg">
+                  <svg className="w-10 h-10 text-primary drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                </div>
+
+                <div>
+                  <p className="text-lg font-semibold mb-1 text-foreground">
+                    {selectedFile ? selectedFile.name : "Drop your workout video here"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedFile
+                      ? `${formatFileSize(selectedFile.size)} • Ready to analyze`
+                      : "or click to browse • MP4, MOV, AVI up to 500MB"}
+                  </p>
+                </div>
+
+                {!selectedFile && (
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    variant="outline"
+                    className="mt-2 border-2 font-semibold"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Choose File
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Selected File Preview */}
+            {selectedFile && (
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{selectedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={handleUpload}
+                disabled={!selectedFile || isUploading || !user}
+                className="flex-1 bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 text-primary-foreground font-bold text-base shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] border-0"
+                size="lg"
+              >
+                {isUploading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Analyze Form
+                  </>
+                )}
+              </Button>
+              {selectedFile && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 font-semibold"
+                >
+                  Change Video
+                </Button>
+              )}
+            </div>
+
+            {/* Pro Tip */}
+            <div className="flex items-start gap-3 p-5 bg-gradient-to-r from-primary/10 via-secondary/8 to-accent/10 rounded-xl border-2 border-primary/20 shadow-md">
+              <svg
+                className="w-6 h-6 text-primary flex-shrink-0 mt-0.5 drop-shadow-sm"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-            </div>
-
-            <div>
-              <p className="text-lg font-semibold mb-1 text-foreground">
-                {selectedFile ? selectedFile.name : "Drop your workout video here"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {selectedFile
-                  ? `${formatFileSize(selectedFile.size)} • Ready to analyze`
-                  : "or click to browse • MP4, MOV, AVI up to 500MB"}
-              </p>
-            </div>
-
-            {!selectedFile && (
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline"
-                className="mt-2 border-2 font-semibold"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-                Choose File
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Selected File Preview */}
-        {selectedFile && (
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-sm">{selectedFile.name}</p>
-                <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+              <div className="text-sm leading-relaxed">
+                <p className="font-bold text-foreground mb-2 flex items-center gap-2">
+                  💡 <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Pro Tip</span>
+                </p>
+                <p className="text-foreground/80 font-medium">
+                  For best results, record your workout from the side with your full body visible. Good lighting and a
+                  stable camera position help our AI provide more accurate feedback.
+                </p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </Button>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading || !user}
-            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
-            size="lg"
-          >
-            {isUploading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Analyze Form
-              </>
-            )}
-          </Button>
-          {selectedFile && (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 font-semibold"
-            >
-              Change Video
-            </Button>
-          )}
-        </div>
-
-        {/* Analysis Results */}
+        {/* Analysis Results - shown for both modes */}
         {analysisResult && (
           <div className="p-6 bg-accent/10 border-2 border-accent rounded-lg">
             <div className="flex items-center gap-2 mb-4">
@@ -291,35 +459,15 @@ export function VideoUpload() {
             <div>
               <h4 className="font-medium text-foreground mb-2">AI Feedback:</h4>
               <div className="text-foreground/80 text-sm">
-                <MarkdownRenderer content={analysisResult.feedback} />
+                <MarkdownRenderer content={
+                  Array.isArray(analysisResult.feedback) 
+                    ? analysisResult.feedback.join('\n\n• ') 
+                    : analysisResult.feedback || 'No feedback available'
+                } />
               </div>
             </div>
           </div>
         )}
-
-        {/* Pro Tip */}
-        <div className="flex items-start gap-3 p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
-          <svg
-            className="w-5 h-5 text-primary flex-shrink-0 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div className="text-sm leading-relaxed">
-            <p className="font-semibold text-foreground mb-1">Pro Tip</p>
-            <p className="text-foreground/80">
-              For best results, record your workout from the side with your full body visible. Good lighting and a
-              stable camera position help our AI provide more accurate feedback.
-            </p>
-          </div>
-        </div>
       </div>
     </Card>
   )
