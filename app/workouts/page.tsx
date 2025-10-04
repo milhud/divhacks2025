@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthForm } from "@/components/auth-form"
+import { Avatar } from "@/components/avatar"
 
 // Massive dictionary of workouts with YouTube videos
 const workouts = [
@@ -227,8 +228,14 @@ export default function WorkoutsPage() {
           </nav>
           {user ? (
             <div className="flex items-center gap-4">
-              <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">
-                Profile
+              <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <Avatar 
+                  name={user?.user_metadata?.full_name || user?.email || 'User'} 
+                  size="sm" 
+                />
+                <span className="text-sm text-muted-foreground hover:text-foreground">
+                  Profile
+                </span>
               </Link>
               <button 
                 onClick={() => signOut()}
