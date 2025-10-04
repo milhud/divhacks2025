@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthForm } from "@/components/auth-form"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 const recentSessions = [
   {
@@ -172,7 +173,9 @@ export default function ProgressPage() {
                           {session.score}% Form Score
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">{session.feedback}</p>
+                      <div className="text-sm text-muted-foreground mb-3">
+                        <MarkdownRenderer content={session.feedback} />
+                      </div>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

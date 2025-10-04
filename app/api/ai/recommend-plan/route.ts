@@ -36,14 +36,33 @@ Available Meal Plans:
 3. Clean Eating Plan (6 weeks) - Whole foods approach for optimal health
 4. Plant-Based Nutrition (4 weeks) - Complete nutrition from plant sources
 
-Please provide:
-1. Recommended workout plan with reasoning
-2. Recommended meal plan with reasoning
-3. Specific tips for their challenges
-4. Expected timeline for results
-5. Any additional advice
+Please provide a comprehensive recommendation using markdown formatting:
 
-Keep the response concise but helpful, focusing on actionable advice.
+## Recommended Workout Plan
+- **Plan Name**: [Selected plan]
+- **Reasoning**: Why this plan is perfect for you
+- **Duration**: How long to follow this plan
+
+## Recommended Meal Plan
+- **Plan Name**: [Selected plan]
+- **Reasoning**: Why this nutrition approach fits your goals
+- **Key Focus**: Main nutritional priorities
+
+## Specific Tips for Your Challenges
+- Address each challenge with actionable advice
+- Use bullet points for clarity
+
+## Expected Timeline
+- **Week 1-2**: Initial changes you'll notice
+- **Week 3-4**: Progress milestones
+- **Month 2+**: Long-term results
+
+## Additional Advice
+- Pro tips for success
+- Common pitfalls to avoid
+- Motivation and encouragement
+
+Use **bold** for emphasis and bullet points for easy reading.
     `.trim()
 
     const completion = await openai.chat.completions.create({

@@ -28,14 +28,28 @@ Overall Confidence: ${poseData.overall_confidence || 'N/A'}
 
 Keypoints Data: ${JSON.stringify(poseData.keypoints, null, 2)}
 
-Please provide:
-1. Overall assessment of the workout
-2. Specific areas that need improvement
-3. Positive aspects to maintain
-4. Specific recommendations for better form
-5. Motivational encouragement
+Please provide detailed feedback using markdown formatting:
 
-Keep the feedback constructive, specific, and encouraging. Focus on actionable advice.
+## Overall Assessment
+- Brief summary of the workout performance
+
+## Areas for Improvement
+- Specific form issues to address
+- Use bullet points for clarity
+
+## Positive Aspects
+- What you did well
+- Strengths to maintain
+
+## Recommendations
+- Specific actionable advice
+- Focus on technique improvements
+
+## Next Steps
+- Motivational encouragement
+- Suggested focus areas for next workout
+
+Use **bold** for emphasis, bullet points for lists, and keep the tone encouraging and constructive.
     `.trim()
 
     const completion = await openai.chat.completions.create({

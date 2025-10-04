@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   isConfigured: boolean
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any; message?: string }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
 }
@@ -52,16 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           full_name: fullName,
         },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
     
-    // If signup successful, also sign in the user
+    // Return success even if email confirmation is required
     if (data.user && !error) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      return { error: signInError }
+      return { 
+        error: null, 
+        message: data.user.email_confirmed_at 
+          ? 'Account created successfully!' 
+          : 'Please check your email and click the confirmation link to complete your registration.'
+      }
     }
     
     return { error }

@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
+import { MarkdownRenderer } from "./markdown-renderer"
 
 export function VideoUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -275,7 +276,9 @@ export function VideoUpload() {
 
             <div>
               <h4 className="font-medium text-green-900 mb-2">AI Feedback:</h4>
-              <p className="text-green-800 text-sm leading-relaxed">{analysisResult.feedback}</p>
+              <div className="text-green-800 text-sm">
+                <MarkdownRenderer content={analysisResult.feedback} />
+              </div>
             </div>
           </div>
         )}

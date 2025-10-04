@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthForm } from "@/components/auth-form"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 const workoutPlans = [
   {
@@ -257,7 +258,9 @@ export default function PlansPage() {
               {aiRecommendation && (
                 <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
                   <h4 className="font-semibold text-gray-900 mb-2">AI Recommendation:</h4>
-                  <p className="text-gray-700">{aiRecommendation}</p>
+                  <div className="text-gray-700">
+                    <MarkdownRenderer content={aiRecommendation} />
+                  </div>
                 </div>
               )}
             </div>

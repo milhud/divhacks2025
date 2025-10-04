@@ -11,6 +11,7 @@ export function AuthForm() {
   const [fullName, setFullName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
   const { signIn, signUp } = useAuth()
 
@@ -18,6 +19,7 @@ export function AuthForm() {
     e.preventDefault()
     setLoading(true)
     setError("")
+    setSuccess("")
 
     try {
       let result
@@ -29,6 +31,14 @@ export function AuthForm() {
 
       if (result.error) {
         setError(result.error.message)
+      } else if (result.message) {
+        setSuccess(result.message)
+        // Clear form on successful signup
+        if (isSignUp) {
+          setEmail("")
+          setPassword("")
+          setFullName("")
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred")
@@ -110,6 +120,12 @@ export function AuthForm() {
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="text-sm text-green-600 bg-green-50 p-4 rounded-lg border border-green-200">
+                {success}
               </div>
             )}
 

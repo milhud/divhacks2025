@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase"
+import { Avatar } from "@/components/avatar"
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth()
@@ -13,10 +14,10 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     age: '',
-    height: '',
-    weight: '',
-    fitness_goal: '',
-    experience_level: '',
+    height_cm: '',
+    weight_kg: '',
+    fitness_level: '',
+    goals: '',
     bio: ''
   })
 
@@ -35,22 +36,52 @@ export default function ProfilePage() {
         .single()
 
       if (error) {
-        console.error('Error fetching profile:', error)
-        return
-      }
+        // If profile doesn't exist, create one
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating new profile...')
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user?.id,
+              full_name: user?.user_metadata?.full_name || '',
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single()
 
-      setProfile(data)
-      setFormData({
-        full_name: data?.full_name || '',
-        age: data?.age || '',
-        height: data?.height || '',
-        weight: data?.weight || '',
-        fitness_goal: data?.fitness_goal || '',
-        experience_level: data?.experience_level || '',
-        bio: data?.bio || ''
-      })
+          if (createError) {
+            console.error('Error creating profile:', createError)
+            return
+          }
+
+          setProfile(newProfile)
+          setFormData({
+            full_name: newProfile?.full_name || '',
+            age: newProfile?.age || '',
+            height_cm: newProfile?.height_cm || '',
+            weight_kg: newProfile?.weight_kg || '',
+            fitness_level: newProfile?.fitness_level || '',
+            goals: newProfile?.goals || '',
+            bio: newProfile?.bio || ''
+          })
+        } else {
+          console.error('Error fetching profile:', error)
+          return
+        }
+      } else {
+        setProfile(data)
+        setFormData({
+          full_name: data?.full_name || '',
+          age: data?.age || '',
+          height_cm: data?.height_cm || '',
+          weight_kg: data?.weight_kg || '',
+          fitness_level: data?.fitness_level || '',
+          goals: data?.goals || '',
+          bio: data?.bio || ''
+        })
+      }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Unexpected error:', error)
     } finally {
       setLoading(false)
     }
@@ -163,7 +194,16 @@ export default function ProfilePage() {
           {/* Profile Card */}
           <div className="bg-white rounded-xl border border-gray-200 p-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Personal Information</h3>
+              <div className="flex items-center gap-4">
+                <Avatar 
+                  name={profile?.full_name || user?.email || 'User'} 
+                  size="lg" 
+                />
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Personal Information</h3>
+                  <p className="text-gray-600">{profile?.full_name || user?.email}</p>
+                </div>
+              </div>
               <button
                 onClick={() => setEditing(!editing)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -221,13 +261,13 @@ export default function ProfilePage() {
                 {editing ? (
                   <input
                     type="number"
-                    name="height"
-                    value={formData.height}
+                    name="height_cm"
+                    value={formData.height_cm}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 ) : (
-                  <p className="text-gray-900">{profile?.height || 'Not set'}</p>
+                  <p className="text-gray-900">{profile?.height_cm || 'Not set'}</p>
                 )}
               </div>
 
@@ -238,24 +278,24 @@ export default function ProfilePage() {
                 {editing ? (
                   <input
                     type="number"
-                    name="weight"
-                    value={formData.weight}
+                    name="weight_kg"
+                    value={formData.weight_kg}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 ) : (
-                  <p className="text-gray-900">{profile?.weight || 'Not set'}</p>
+                  <p className="text-gray-900">{profile?.weight_kg || 'Not set'}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Experience Level
+                  Fitness Level
                 </label>
                 {editing ? (
                   <select
-                    name="experience_level"
-                    value={formData.experience_level}
+                    name="fitness_level"
+                    value={formData.fitness_level}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -265,7 +305,7 @@ export default function ProfilePage() {
                     <option value="Advanced">Advanced</option>
                   </select>
                 ) : (
-                  <p className="text-gray-900">{profile?.experience_level || 'Not set'}</p>
+                  <p className="text-gray-900">{profile?.fitness_level || 'Not set'}</p>
                 )}
               </div>
 
@@ -275,8 +315,8 @@ export default function ProfilePage() {
                 </label>
                 {editing ? (
                   <select
-                    name="fitness_goal"
-                    value={formData.fitness_goal}
+                    name="goals"
+                    value={formData.goals}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -288,7 +328,7 @@ export default function ProfilePage() {
                     <option value="General Fitness">General Fitness</option>
                   </select>
                 ) : (
-                  <p className="text-gray-900">{profile?.fitness_goal || 'Not set'}</p>
+                  <p className="text-gray-900">{profile?.goals || 'Not set'}</p>
                 )}
               </div>
 
