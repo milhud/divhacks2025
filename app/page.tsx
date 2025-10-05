@@ -39,13 +39,7 @@ export default function Home() {
               href="/ai-analysis"
               className="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
             >
-              🤖 Start AI Form Analysis
-            </Link>
-            <Link
-              href="/test-camera"
-              className="inline-flex items-center justify-center px-8 py-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-lg"
-            >
-              📹 Live Camera Feed
+              Start Live AI Form Analysis
             </Link>
           </div>
 
