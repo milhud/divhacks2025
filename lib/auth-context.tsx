@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any; message?: string }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
+  demoLogin: (type?: 'user' | 'provider') => Promise<{ error: any }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -23,28 +24,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isConfigured, setIsConfigured] = useState(false)
 
   useEffect(() => {
-    setIsConfigured(true) // Always assume configured
+    const configured = isSupabaseConfigured()
+    setIsConfigured(configured)
     
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    if (configured) {
+      // Get initial session from Supabase
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      })
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+      // Listen for auth changes
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      })
 
-    return () => subscription.unsubscribe()
+      return () => subscription.unsubscribe()
+    } else {
+      // Demo mode - check localStorage for demo session
+      const demoUser = localStorage.getItem('demo-user')
+      const demoSession = localStorage.getItem('demo-session')
+      
+      if (demoUser && demoSession) {
+        try {
+          setUser(JSON.parse(demoUser))
+          setSession(JSON.parse(demoSession))
+        } catch (error) {
+          console.error('Error parsing demo session:', error)
+          localStorage.removeItem('demo-user')
+          localStorage.removeItem('demo-session')
+        }
+      }
+      setLoading(false)
+    }
   }, [])
 
   const signUp = async (email: string, password: string, fullName?: string) => {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured()) {
+      return { 
+        error: null,
+        message: 'ℹ️ Demo mode active - Use the demo login buttons for quick access!' 
+      }
+    }
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -70,6 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signIn = async (email: string, password: string) => {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured()) {
+      return { 
+        error: null,
+        message: 'ℹ️ Demo mode active - Use the demo login buttons for quick access!' 
+      }
+    }
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -78,8 +114,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured()) {
+      // For demo mode, just clear local state
+      setUser(null)
+      setSession(null)
+      localStorage.removeItem('demo-user')
+      localStorage.removeItem('demo-session')
+      return { error: null }
+    }
+    
     const { error } = await supabase.auth.signOut()
     return { error }
+  }
+
+  const demoLogin = async (type: 'user' | 'provider' = 'user') => {
+    // For demo purposes, create a mock user session
+    const isProvider = type === 'provider'
+    
+    const mockUser = {
+      id: isProvider ? 'demo-provider-123' : 'demo-user-123',
+      email: isProvider ? 'provider@vibecoach.health' : 'user@vibecoach.health',
+      user_metadata: {
+        full_name: isProvider ? 'Dr. Sarah Johnson' : 'Demo User',
+        role: isProvider ? 'provider' : 'user'
+      }
+    } as User
+
+    const mockSession = {
+      user: mockUser,
+      access_token: 'demo-token',
+      refresh_token: 'demo-refresh',
+      expires_at: Date.now() + 3600000, // 1 hour from now
+      expires_in: 3600,
+      token_type: 'bearer'
+    } as Session
+
+    setUser(mockUser)
+    setSession(mockSession)
+    
+    // Store in localStorage for persistence
+    localStorage.setItem('demo-user', JSON.stringify(mockUser))
+    localStorage.setItem('demo-session', JSON.stringify(mockSession))
+    
+    // Redirect based on role
+    if (isProvider) {
+      window.location.href = '/provider'
+    } else {
+      window.location.href = '/patient'
+    }
+    
+    return { error: null }
   }
 
   const value = {
@@ -90,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signIn,
     signOut,
+    demoLogin,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

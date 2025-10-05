@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { AuthProvider } from '@/lib/auth-context'
+import { DemoCredentials } from '@/components/demo-credentials'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body className="antialiased">
         <AuthProvider>
           {children}
+          <DemoCredentials />
         </AuthProvider>
       </body>
     </html>

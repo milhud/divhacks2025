@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase"
 import { Avatar } from "@/components/avatar"
+import { ExerciseProgress } from "@/components/exercise-progress"
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth()
@@ -418,6 +419,46 @@ export default function ProfilePage() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Assigned Exercises */}
+          <div className="mt-8 bg-white rounded-xl border border-gray-200 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">My Assigned Exercises</h3>
+              <button
+                onClick={() => setEditing(!editing)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Add Exercise
+              </button>
+            </div>
+            
+            <ExerciseProgress 
+              onExerciseComplete={(exerciseId) => {
+                console.log(`Exercise completed: ${exerciseId}`)
+                // You can add celebration animation or notification here
+              }}
+              onProgressUpdate={(exerciseId, progress) => {
+                console.log(`Exercise ${exerciseId} progress: ${progress}%`)
+              }}
+            />
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-blue-600">💡</span>
+                <h4 className="font-semibold text-blue-900">AI Form Analysis</h4>
+              </div>
+              <p className="text-sm text-blue-800">
+                Use the live camera analysis to get real-time feedback on your form. 
+                The AI will automatically track your progress and mark exercises as complete when you achieve proper form.
+              </p>
+              <Link 
+                href="/test-camera"
+                className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Start AI Analysis
+              </Link>
+            </div>
           </div>
 
           {/* Stats Card */}

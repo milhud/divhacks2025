@@ -87,6 +87,42 @@ export default function TestCamera() {
                     <li>• Control the movement down</li>
                   </ul>
                 </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">🔥 Pushup</h4>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    <li>• Start in plank position</li>
+                    <li>• Lower chest to ground</li>
+                    <li>• Keep body straight</li>
+                    <li>• Push back up to start</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">🧘 Plank</h4>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    <li>• Hold straight body position</li>
+                    <li>• Keep hips level</li>
+                    <li>• Engage core muscles</li>
+                    <li>• Breathe steadily</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">🦵 Lunge</h4>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    <li>• Step forward with one leg</li>
+                    <li>• Lower back knee toward ground</li>
+                    <li>• Keep front knee over ankle</li>
+                    <li>• Push back to starting position</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">💪 Shoulder Press</h4>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    <li>• Start with weights at shoulder level</li>
+                    <li>• Press straight up overhead</li>
+                    <li>• Keep core engaged</li>
+                    <li>• Lower with control</li>
+                  </ul>
+                </div>
               </div>
             </div>
 

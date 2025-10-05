@@ -4,19 +4,24 @@ import { useState } from "react"
 import { AILiveCamera } from "@/components/ai-live-camera"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { ExerciseProgress } from "@/components/exercise-progress"
+import { Header } from "@/components/header"
+import { useAuth } from "@/lib/auth-context"
 
 export default function AIAnalysisPage() {
+  const { user } = useAuth()
   const [selectedExercise, setSelectedExercise] = useState('squat')
   const [analysisHistory, setAnalysisHistory] = useState<any[]>([])
   const [isProviderMode, setIsProviderMode] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
 
   const exercises = [
-    { value: 'squat', label: 'Squat', description: 'Lower body strength exercise' },
-    { value: 'push_up', label: 'Push-up', description: 'Upper body strength exercise' },
-    { value: 'lunge', label: 'Lunge', description: 'Single leg strength exercise' },
-    { value: 'deadlift', label: 'Deadlift', description: 'Hip hinge movement' },
-    { value: 'plank', label: 'Plank', description: 'Core stability exercise' },
-    { value: 'general', label: 'General', description: 'General movement analysis' }
+    { value: 'squat', label: '🏋️ Squat', description: 'Lower body strength exercise' },
+    { value: 'bicep_curl', label: '💪 Bicep Curl', description: 'Arm strength exercise' },
+    { value: 'pushup', label: '🔥 Pushup', description: 'Upper body strength exercise' },
+    { value: 'plank', label: '🧘 Plank', description: 'Core stability exercise' },
+    { value: 'lunge', label: '🦵 Lunge', description: 'Single leg strength exercise' },
+    { value: 'shoulder_press', label: '💪 Shoulder Press', description: 'Overhead strength exercise' }
   ]
 
   const handleAnalysisComplete = (analysis: any) => {
@@ -28,8 +33,11 @@ export default function AIAnalysisPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col">
+      <Header onShowAuth={() => setShowAuth(true)} />
+      
+      <div className="flex-1 bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             🤖 AI-Powered Form Analysis
@@ -47,11 +55,25 @@ export default function AIAnalysisPage() {
               onAnalysisComplete={handleAnalysisComplete}
               exerciseType={selectedExercise}
               isProviderMode={isProviderMode}
+              showExerciseSelector={true}
             />
           </div>
 
           {/* Controls and Settings */}
           <div className="space-y-6">
+            {/* Assigned Exercises */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">My Assigned Exercises</h3>
+              <ExerciseProgress 
+                onExerciseComplete={(exerciseId) => {
+                  console.log(`Exercise completed: ${exerciseId}`)
+                  // You can add celebration animation or notification here
+                }}
+                onProgressUpdate={(exerciseId, progress) => {
+                  console.log(`Exercise ${exerciseId} progress: ${progress}%`)
+                }}
+              />
+            </Card>
             {/* Exercise Selection */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Exercise Selection</h3>
@@ -213,7 +235,46 @@ export default function AIAnalysisPage() {
             </Card>
           </div>
         )}
+        </div>
       </div>
+
+      {/* Authentication Modal */}
+      {showAuth && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="relative my-8">
+            <button
+              onClick={() => setShowAuth(false)}
+              className="absolute -top-4 -right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-lg z-10 text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-2xl font-bold text-center mb-6">Sign In Required</h2>
+              <p className="text-gray-600 text-center mb-6">
+                Please sign in to access AI Form Analysis features.
+              </p>
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => setShowAuth(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowAuth(false)
+                    // You can add sign in logic here
+                  }}
+                  className="flex-1"
+                >
+                  Sign In
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

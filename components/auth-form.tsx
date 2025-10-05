@@ -13,6 +13,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [info, setInfo] = useState("")
 
   const { signIn, signUp } = useAuth()
 
@@ -21,6 +22,7 @@ export function AuthForm() {
     setLoading(true)
     setError("")
     setSuccess("")
+    setInfo("")
 
     try {
       let result
@@ -39,13 +41,18 @@ export function AuthForm() {
       if (result.error) {
         setError(result.error.message)
       } else if (result.message) {
-        setSuccess(result.message)
-        // Clear form on successful signup
-        if (isSignUp) {
-          setEmail("")
-          setPassword("")
-          setFullName("")
-          setProviderCode("")
+        // Check if this is a demo mode message (show as info)
+        if (result.message.includes('Demo mode')) {
+          setInfo(result.message)
+        } else {
+          setSuccess(result.message)
+          // Clear form on successful signup
+          if (isSignUp) {
+            setEmail("")
+            setPassword("")
+            setFullName("")
+            setProviderCode("")
+          }
         }
       }
     } catch (err) {
@@ -153,6 +160,12 @@ export function AuthForm() {
             {success && (
               <div className="text-sm text-green-600 bg-green-50 p-4 rounded-lg border border-green-200">
                 {success}
+              </div>
+            )}
+
+            {info && (
+              <div className="text-sm text-blue-600 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                {info}
               </div>
             )}
 

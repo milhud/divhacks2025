@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { updateExerciseProgress } from "./exercise-progress"
 
 interface AILiveCameraProps {
   onAnalysisComplete: (analysis: any) => void
@@ -28,15 +29,25 @@ interface Compensation {
 
 interface AIAnalysis {
   timestamp: string
-  exercise_type: string
-  overall_score: number
-  form_quality: 'excellent' | 'good' | 'fair' | 'poor' | 'dangerous'
-  confidence: number
-  joint_angles: Record<string, JointAngle>
-  compensations: Compensation[]
-  feedback: string[]
-  warnings: string[]
-  recommendations: string[]
+  exerciseType: string
+  formScore: number
+  repCount: number
+  currentAngle: number
+  angles: {
+    leftKnee: number
+    rightKnee: number
+    leftElbow: number
+    rightElbow: number
+    leftHip: number
+    rightHip: number
+    leftShoulder: number
+    rightShoulder: number
+    leftAnkle: number
+    rightAnkle: number
+  }
+  repState: string | null
+  keypoints: any
+  feedback: string
 }
 
 export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode = false, showExerciseSelector = true }: AILiveCameraProps) {
@@ -180,7 +191,6 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     
     setIsStreaming(false)
     setIsAnalyzing(false)
-    setIsAiAnalyzing(false)
   }
 
   const initMediaPipe = async () => {
@@ -316,8 +326,46 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
       // For bicep curls, use RIGHT elbow angle specifically
       primaryAngle = angles.rightElbow
       console.log(`💪 [BICEP] Primary angle: ${Math.round(primaryAngle)}°`)
-    } else if (exerciseName.includes('push') || exerciseName.includes('arm')) {
+    } else if (exerciseName === 'pushup') {
+      // For pushups, use average elbow angle
       primaryAngle = (angles.leftElbow + angles.rightElbow) / 2
+      console.log(`🔥 [PUSHUP] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'plank') {
+      // For planks, use hip angle (body alignment)
+      primaryAngle = (angles.leftHip + angles.rightHip) / 2
+      console.log(`🧘 [PLANK] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'lunge') {
+      // For lunges, use front knee angle
+      primaryAngle = angles.rightKnee // Assuming right leg forward
+      console.log(`🦵 [LUNGE] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'shoulder_press') {
+      // For shoulder press, use average elbow angle
+      primaryAngle = (angles.leftElbow + angles.rightElbow) / 2
+      console.log(`💪 [SHOULDER PRESS] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'knee_flexion') {
+      // For knee flexion rehab, use average knee angle
+      primaryAngle = (angles.leftKnee + angles.rightKnee) / 2
+      console.log(`🦵 [KNEE FLEXION] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'shoulder_abduction') {
+      // For shoulder abduction, use average shoulder angle
+      primaryAngle = (angles.leftShoulder + angles.rightShoulder) / 2
+      console.log(`🤲 [SHOULDER ABDUCTION] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'ankle_pumps') {
+      // For ankle pumps, use average ankle angle
+      primaryAngle = (angles.leftAnkle + angles.rightAnkle) / 2
+      console.log(`👣 [ANKLE PUMPS] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'hip_flexion') {
+      // For hip flexion, use average hip angle
+      primaryAngle = (angles.leftHip + angles.rightHip) / 2
+      console.log(`🦴 [HIP FLEXION] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'wrist_flexion') {
+      // For wrist flexion, use average elbow angle as proxy
+      primaryAngle = (angles.leftElbow + angles.rightElbow) / 2
+      console.log(`✋ [WRIST FLEXION] Primary angle: ${Math.round(primaryAngle)}°`)
+    } else if (exerciseName === 'neck_rotation') {
+      // For neck rotation, use shoulder angle as proxy
+      primaryAngle = (angles.leftShoulder + angles.rightShoulder) / 2
+      console.log(`👤 [NECK ROTATION] Primary angle: ${Math.round(primaryAngle)}°`)
     } else {
       primaryAngle = (angles.leftKnee + angles.rightKnee) / 2
     }
@@ -497,11 +545,104 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
         lastRepTimeRef.current = now
         console.log(`🎉 [SQUAT] Rep counted! (4s delay)`)
       }
+    } else if (exerciseName === 'pushup') {
+      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      const timeSincePageStart = (now - pageStartTime) / 1000
+      
+      if (timeSincePageStart < 5) {
+        console.log(`🔥 [PUSHUP] Page just started, no reps yet (${timeSincePageStart.toFixed(1)}s)`)
+        return
+      }
+      
+      // Check if chest is low (elbow angle < 90 degrees)
+      const elbowAngle = (angles.leftElbow + angles.rightElbow) / 2
+      const lowEnough = elbowAngle < 90
+      
+      console.log(`🔥 [PUSHUP] Elbow: ${Math.round(elbowAngle)}°, Low: ${lowEnough}, TimeSince: ${timeSinceLastRep.toFixed(1)}s`)
+      
+      if (lowEnough && timeSinceLastRep > 3.0) { // 3 second delay between reps
+        incrementRep()
+        lastRepTimeRef.current = now
+        console.log(`🎉 [PUSHUP] Rep counted! (3s delay)`)
+      }
+    } else if (exerciseName === 'plank') {
+      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      const timeSincePageStart = (now - pageStartTime) / 1000
+      
+      if (timeSincePageStart < 5) {
+        console.log(`🧘 [PLANK] Page just started, no reps yet (${timeSincePageStart.toFixed(1)}s)`)
+        return
+      }
+      
+      // For planks, count time-based "reps" (every 10 seconds)
+      if (timeSinceLastRep > 10.0) { // 10 second intervals
+        incrementRep()
+        lastRepTimeRef.current = now
+        console.log(`🎉 [PLANK] Time rep counted! (10s interval)`)
+      }
+    } else if (exerciseName === 'lunge') {
+      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      const timeSincePageStart = (now - pageStartTime) / 1000
+      
+      if (timeSincePageStart < 5) {
+        console.log(`🦵 [LUNGE] Page just started, no reps yet (${timeSincePageStart.toFixed(1)}s)`)
+        return
+      }
+      
+      // Check if lunging down (knee angle < 90 degrees)
+      const kneeAngle = angles.rightKnee // Front leg
+      const lowEnough = kneeAngle < 90
+      
+      console.log(`🦵 [LUNGE] Knee: ${Math.round(kneeAngle)}°, Low: ${lowEnough}, TimeSince: ${timeSinceLastRep.toFixed(1)}s`)
+      
+      if (lowEnough && timeSinceLastRep > 4.0) { // 4 second delay between reps
+        incrementRep()
+        lastRepTimeRef.current = now
+        console.log(`🎉 [LUNGE] Rep counted! (4s delay)`)
+      }
+    } else if (exerciseName === 'shoulder_press') {
+      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
+      const timeSincePageStart = (now - pageStartTime) / 1000
+      
+      if (timeSincePageStart < 5) {
+        console.log(`💪 [SHOULDER PRESS] Page just started, no reps yet (${timeSincePageStart.toFixed(1)}s)`)
+        return
+      }
+      
+      // Check if arms are extended overhead (elbow angle > 150 degrees)
+      const elbowAngle = (angles.leftElbow + angles.rightElbow) / 2
+      const extended = elbowAngle > 150
+      
+      console.log(`💪 [SHOULDER PRESS] Elbow: ${Math.round(elbowAngle)}°, Extended: ${extended}, TimeSince: ${timeSinceLastRep.toFixed(1)}s`)
+      
+      if (extended && timeSinceLastRep > 3.0) { // 3 second delay between reps
+        incrementRep()
+        lastRepTimeRef.current = now
+        console.log(`🎉 [SHOULDER PRESS] Rep counted! (3s delay)`)
+      }
+    }
+
+    const getExerciseTypeName = (exerciseId: string) => {
+      const exerciseMap: Record<string, string> = {
+        'squat': 'Squat',
+        'bicep_curl': 'Bicep Curl',
+        'pushup': 'Pushup',
+        'plank': 'Plank',
+        'lunge': 'Lunge',
+        'shoulder_press': 'Shoulder Press',
+        'knee_flexion': 'Knee Flexion',
+        'shoulder_abduction': 'Shoulder Abduction',
+        'ankle_pumps': 'Ankle Pumps',
+        'hip_flexion': 'Hip Flexion',
+        'wrist_flexion': 'Wrist Flexion',
+        'neck_rotation': 'Neck Rotation'
+      }
+      return exerciseMap[exerciseId] || 'General'
     }
 
     const newAnalysis = {
       timestamp: new Date().toISOString(),
-      exerciseType: selectedExercise === 'squat' ? 'Squat' : selectedExercise === 'bicep_curl' ? 'Bicep Curl' : 'General',
+      exerciseType: getExerciseTypeName(selectedExercise),
       formScore: score,
       repCount: currentRepCount,
       currentAngle: Math.round(primaryAngle),
@@ -514,6 +655,11 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
 
     setAnalysis(newAnalysis)
     onAnalysisComplete(newAnalysis)
+    
+    // Update exercise progress if form score is good enough
+    if (score >= 75) { // Only count as progress if form is good
+      updateExerciseProgress(selectedExercise, score, currentRepCount)
+    }
   }
 
   const generateBasicFeedback = (angles: any, exerciseName: string, primaryAngle: number, repState: string | null) => {
@@ -606,23 +752,155 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
           speakFeedback('Stop swinging right arm')
         }
       }
-    } else if (exerciseName.includes('push')) {
+    } else if (exerciseName === 'pushup') {
       if (primaryAngle < 90) {
-        feedbackParts.push('💪 Full ROM!')
+        feedbackParts.push('💪 Perfect depth!')
       } else if (primaryAngle < 100) {
         feedbackParts.push('✅ Good depth')
       } else if (primaryAngle < 120) {
         feedbackParts.push('📏 Lower chest')
-        if (repState === 'down') speakFeedback('Chest to ground')
+        speakFeedback('Chest to ground')
       } else {
         feedbackParts.push('❌ Too high')
-        if (repState === 'down') speakFeedback('Drop your chest lower')
+        speakFeedback('Drop your chest lower')
       }
       
       const elbowDiff = Math.abs(angles.leftElbow - angles.rightElbow)
       if (elbowDiff > 15) {
         feedbackParts.push('⚠️ Uneven arms')
         speakFeedback('Press evenly')
+      }
+    } else if (exerciseName === 'plank') {
+      // For planks, check body alignment
+      const hipAngle = (angles.leftHip + angles.rightHip) / 2
+      const shoulderAngle = (angles.leftShoulder + angles.rightShoulder) / 2
+      
+      if (hipAngle > 160 && shoulderAngle > 160) {
+        feedbackParts.push('💎 Perfect plank form!')
+      } else if (hipAngle > 150 && shoulderAngle > 150) {
+        feedbackParts.push('✅ Good alignment')
+      } else if (hipAngle < 140 || shoulderAngle < 140) {
+        feedbackParts.push('⚠️ Hips too high')
+        speakFeedback('Lower your hips')
+      } else {
+        feedbackParts.push('📏 Straighten your body')
+        speakFeedback('Keep your body straight')
+      }
+      
+      // Check for hip sway
+      const hipDiff = Math.abs(angles.leftHip - angles.rightHip)
+      if (hipDiff > 10) {
+        feedbackParts.push('⚠️ Hips uneven')
+        speakFeedback('Keep hips level')
+      }
+    } else if (exerciseName === 'lunge') {
+      if (primaryAngle < 90) {
+        feedbackParts.push('💎 Perfect lunge depth!')
+      } else if (primaryAngle < 100) {
+        feedbackParts.push('✅ Good depth')
+      } else if (primaryAngle < 120) {
+        feedbackParts.push('📏 Go lower')
+        speakFeedback('Lower your body more')
+      } else {
+        feedbackParts.push('❌ Too shallow')
+        speakFeedback('Deeper lunge needed')
+      }
+      
+      // Check balance
+      const kneeDiff = Math.abs(angles.leftKnee - angles.rightKnee)
+      if (kneeDiff > 30) {
+        feedbackParts.push('⚠️ Unbalanced')
+        speakFeedback('Keep your balance')
+      }
+    } else if (exerciseName === 'shoulder_press') {
+      if (primaryAngle > 150) {
+        feedbackParts.push('💪 Perfect extension!')
+      } else if (primaryAngle > 140) {
+        feedbackParts.push('✅ Good extension')
+      } else if (primaryAngle > 120) {
+        feedbackParts.push('📏 Extend more')
+        speakFeedback('Press higher')
+      } else {
+        feedbackParts.push('❌ Incomplete extension')
+        speakFeedback('Full extension needed')
+      }
+      
+      const elbowDiff = Math.abs(angles.leftElbow - angles.rightElbow)
+      if (elbowDiff > 15) {
+        feedbackParts.push('⚠️ Uneven arms')
+        speakFeedback('Press evenly')
+      }
+    } else if (exerciseName === 'knee_flexion') {
+      if (primaryAngle >= 60 && primaryAngle <= 120) {
+        feedbackParts.push('🦵 Perfect knee flexion!')
+      } else if (primaryAngle < 60) {
+        feedbackParts.push('📏 Bend knee more')
+        speakFeedback('Bend your knee further')
+      } else if (primaryAngle > 120) {
+        feedbackParts.push('📏 Straighten more')
+        speakFeedback('Straighten your leg more')
+      } else {
+        feedbackParts.push('✅ Good range')
+      }
+    } else if (exerciseName === 'shoulder_abduction') {
+      if (primaryAngle >= 0 && primaryAngle <= 90) {
+        feedbackParts.push('🤲 Perfect shoulder lift!')
+      } else if (primaryAngle < 0) {
+        feedbackParts.push('📏 Lift arm higher')
+        speakFeedback('Lift your arm up')
+      } else if (primaryAngle > 90) {
+        feedbackParts.push('📏 Lower arm slightly')
+        speakFeedback('Lower your arm a bit')
+      } else {
+        feedbackParts.push('✅ Good range')
+      }
+    } else if (exerciseName === 'ankle_pumps') {
+      if (primaryAngle >= 80 && primaryAngle <= 120) {
+        feedbackParts.push('👣 Perfect ankle movement!')
+      } else if (primaryAngle < 80) {
+        feedbackParts.push('📏 Point toes more')
+        speakFeedback('Point your toes down')
+      } else if (primaryAngle > 120) {
+        feedbackParts.push('📏 Pull toes up more')
+        speakFeedback('Pull your toes up')
+      } else {
+        feedbackParts.push('✅ Good range')
+      }
+    } else if (exerciseName === 'hip_flexion') {
+      if (primaryAngle >= 90 && primaryAngle <= 150) {
+        feedbackParts.push('🦴 Perfect hip lift!')
+      } else if (primaryAngle < 90) {
+        feedbackParts.push('📏 Lift leg higher')
+        speakFeedback('Lift your leg higher')
+      } else if (primaryAngle > 150) {
+        feedbackParts.push('📏 Lower leg slightly')
+        speakFeedback('Lower your leg a bit')
+      } else {
+        feedbackParts.push('✅ Good range')
+      }
+    } else if (exerciseName === 'wrist_flexion') {
+      if (primaryAngle >= 60 && primaryAngle <= 120) {
+        feedbackParts.push('✋ Perfect wrist movement!')
+      } else if (primaryAngle < 60) {
+        feedbackParts.push('📏 Bend wrist more')
+        speakFeedback('Bend your wrist more')
+      } else if (primaryAngle > 120) {
+        feedbackParts.push('📏 Straighten wrist more')
+        speakFeedback('Straighten your wrist more')
+      } else {
+        feedbackParts.push('✅ Good range')
+      }
+    } else if (exerciseName === 'neck_rotation') {
+      if (primaryAngle >= 0 && primaryAngle <= 45) {
+        feedbackParts.push('👤 Perfect neck turn!')
+      } else if (primaryAngle < 0) {
+        feedbackParts.push('📏 Turn more')
+        speakFeedback('Turn your head more')
+      } else if (primaryAngle > 45) {
+        feedbackParts.push('📏 Turn less')
+        speakFeedback('Turn your head less')
+      } else {
+        feedbackParts.push('✅ Good range')
       }
     } else {
       feedbackParts.push(`${Math.round(primaryAngle)}° angle`)
@@ -887,7 +1165,7 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Select Exercise:
             </label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               <button
                 onClick={() => {
                   console.log('🔄 [EXERCISE] Clicking Squat button...')
@@ -929,10 +1207,90 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
               >
                 💪 Bicep Curl
               </button>
+              <button
+                onClick={() => {
+                  console.log('🔄 [EXERCISE] Clicking Pushup button...')
+                  setSelectedExercise('pushup')
+                  setIsCalibrating(true)
+                  setCalibrationAngles([])
+                  calibrationStartRef.current = 0
+                  setRepState(null)
+                  lastRepTimeRef.current = 0
+                  console.log('✅ [EXERCISE] Switched to Pushup - resetting calibration')
+                }}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  selectedExercise === 'pushup'
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                🔥 Pushup
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔄 [EXERCISE] Clicking Plank button...')
+                  setSelectedExercise('plank')
+                  setIsCalibrating(true)
+                  setCalibrationAngles([])
+                  calibrationStartRef.current = 0
+                  setRepState(null)
+                  lastRepTimeRef.current = 0
+                  console.log('✅ [EXERCISE] Switched to Plank - resetting calibration')
+                }}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  selectedExercise === 'plank'
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                🧘 Plank
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔄 [EXERCISE] Clicking Lunge button...')
+                  setSelectedExercise('lunge')
+                  setIsCalibrating(true)
+                  setCalibrationAngles([])
+                  calibrationStartRef.current = 0
+                  setRepState(null)
+                  lastRepTimeRef.current = 0
+                  console.log('✅ [EXERCISE] Switched to Lunge - resetting calibration')
+                }}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  selectedExercise === 'lunge'
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                🦵 Lunge
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔄 [EXERCISE] Clicking Shoulder Press button...')
+                  setSelectedExercise('shoulder_press')
+                  setIsCalibrating(true)
+                  setCalibrationAngles([])
+                  calibrationStartRef.current = 0
+                  setRepState(null)
+                  lastRepTimeRef.current = 0
+                  console.log('✅ [EXERCISE] Switched to Shoulder Press - resetting calibration')
+                }}
+                className={`px-4 py-2 rounded-lg border transition-colors ${
+                  selectedExercise === 'shoulder_press'
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                💪 Shoulder Press
+              </button>
             </div>
             <div className="mt-2 text-sm text-gray-600">
               {selectedExercise === 'squat' && 'Tracks knee angles and depth for proper squat form'}
               {selectedExercise === 'bicep_curl' && 'Tracks elbow angles and arm stability for bicep curls'}
+              {selectedExercise === 'pushup' && 'Tracks chest depth and arm extension for pushup form'}
+              {selectedExercise === 'plank' && 'Tracks body alignment and core stability for plank hold'}
+              {selectedExercise === 'lunge' && 'Tracks knee angles and balance for proper lunge form'}
+              {selectedExercise === 'shoulder_press' && 'Tracks arm extension and shoulder stability for overhead press'}
             </div>
             
             {/* Debug Info */}
