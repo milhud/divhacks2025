@@ -38,8 +38,8 @@ const workouts = [
     exercises: 7,
     tags: ["Strength", "Lower Body"],
     description: "Explosive leg and glute exercises",
-    youtubeUrl: "https://www.youtube.com/embed/2C7P2FBHHQo",
-    videoId: "2C7P2FBHHQo"
+    youtubeUrl: "https://www.youtube.com/watch?v=Zy1pPXpjiIU",
+    videoId: "Zy1pPXpjiIU"
   },
   {
     id: 4,
@@ -82,8 +82,8 @@ const workouts = [
     exercises: 7,
     tags: ["Strength", "Upper Body"],
     description: "Build a powerful chest and strong triceps",
-    youtubeUrl: "https://www.youtube.com/embed/IODxDxX7oi4",
-    videoId: "IODxDxX7oi4"
+    youtubeUrl: "https://www.youtube.com/embed/ExfFozZMheI",
+    videoId: "ExfFozZMheI"
   },
   {
     id: 8,
@@ -93,8 +93,8 @@ const workouts = [
     exercises: 7,
     tags: ["Strength", "Upper Body"],
     description: "Build a strong back and bigger biceps",
-    youtubeUrl: "https://www.youtube.com/embed/eE7dzNyiv0c",
-    videoId: "eE7dzNyiv0c"
+    youtubeUrl: "https://www.youtube.com/embed/N3Z1nvNduos",
+    videoId: "N3Z1nvNduos"
   },
   {
     id: 9,
@@ -104,8 +104,8 @@ const workouts = [
     exercises: 8,
     tags: ["Strength", "Lower Body"],
     description: "Complete leg workout for mass and strength",
-    youtubeUrl: "https://www.youtube.com/embed/BwbmbKshJIk",
-    videoId: "BwbmbKshJIk"
+    youtubeUrl: "https://www.youtube.com/embed/j5VPV_f03O4",
+    videoId: "j5VPV_f03O4"
   },
   {
     id: 10,
