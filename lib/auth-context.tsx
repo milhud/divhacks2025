@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean
   isConfigured: boolean
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any; message?: string }>
-  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error: any; message?: string }>
   signOut: () => Promise<{ error: any }>
   demoLogin: (type?: 'user' | 'provider') => Promise<{ error: any }>
 }
@@ -110,7 +110,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     })
-    return { error }
+    
+    if (error) {
+      return { error }
+    }
+    
+    // Successful sign in
+    return { error: null }
   }
 
   const signOut = async () => {
@@ -135,10 +141,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const mockUser = {
       id: isProvider ? 'demo-provider-123' : 'demo-user-123',
       email: isProvider ? 'provider@vibecoach.health' : 'user@vibecoach.health',
+      app_metadata: {},
       user_metadata: {
         full_name: isProvider ? 'Dr. Sarah Johnson' : 'Demo User',
         role: isProvider ? 'provider' : 'user'
-      }
+      },
+      aud: 'authenticated',
+      created_at: new Date().toISOString()
     } as User
 
     const mockSession = {

@@ -6,10 +6,19 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key'
 
 // Check if Supabase is properly configured
+// Note: Only check client-side accessible variables (NEXT_PUBLIC_*)
+// Service role key is only needed on server-side
 export const isSupabaseConfigured = () => {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL && 
-         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-         process.env.SUPABASE_SERVICE_ROLE_KEY
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  // Check if they're set AND not placeholder values
+  return !!(
+    url && 
+    key && 
+    url !== 'https://placeholder.supabase.co' &&
+    key !== 'placeholder-key'
+  )
 }
 
 // Create Supabase client (works even with placeholder values)

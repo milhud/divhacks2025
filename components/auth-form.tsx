@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 
 export function AuthForm() {
+  const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -33,7 +35,7 @@ export function AuthForm() {
           setLoading(false)
           return
         }
-        result = await signUp(email, password, fullName, providerCode)
+        result = await signUp(email, password, fullName)
       } else {
         result = await signIn(email, password)
       }
@@ -52,8 +54,21 @@ export function AuthForm() {
             setPassword("")
             setFullName("")
             setProviderCode("")
+            
+            // Redirect after signup if email is confirmed
+            setTimeout(() => {
+              window.location.href = '/'
+            }, 1500)
           }
         }
+      } else {
+        // Successful sign in - redirect immediately
+        setSuccess('Signed in successfully! Redirecting...')
+        
+        // Use window.location for hard redirect
+        setTimeout(() => {
+          window.location.href = '/'
+        }, 800)
       }
     } catch (err) {
       setError("An unexpected error occurred")
