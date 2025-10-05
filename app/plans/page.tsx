@@ -134,6 +134,10 @@ export default function PlansPage() {
   const [showAuth, setShowAuth] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<any>(null)
   const [userIssues, setUserIssues] = useState("")
+  const [weight, setWeight] = useState("")
+  const [targetWeight, setTargetWeight] = useState("")
+  const [height, setHeight] = useState("")
+  const [activeDays, setActiveDays] = useState("")
   const [aiRecommendation, setAiRecommendation] = useState("")
   const [isLoadingRecommendation, setIsLoadingRecommendation] = useState(false)
   const { user, signOut } = useAuth()
@@ -154,8 +158,13 @@ export default function PlansPage() {
           issues: userIssues,
           userProfile: {
             experience: "Intermediate",
-            goals: "General Fitness"
-          }
+            goals: "General Fitness",
+            weight: weight ? parseFloat(weight) : null,
+            targetWeight: targetWeight ? parseFloat(targetWeight) : null,
+            height: height ? parseFloat(height) : null,
+            activeDaysPerWeek: activeDays ? parseInt(activeDays) : null
+          },
+          includeCalorieTarget: true
         }),
       })
 
@@ -190,9 +199,64 @@ export default function PlansPage() {
           {/* AI Recommendation Section */}
           <div className="mb-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-8 border border-blue-200">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">AI-Powered Recommendations</h3>
-            <p className="text-gray-600 mb-6">Tell us about your fitness challenges and we'll recommend the perfect plan for you.</p>
+            <p className="text-gray-600 mb-6">Tell us about your fitness challenges and provide your details for personalized recommendations.</p>
             
             <div className="space-y-4">
+              {/* Personal Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Current Weight (lbs)
+                  </label>
+                  <input
+                    type="number"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="e.g., 150"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target Weight (lbs)
+                  </label>
+                  <input
+                    type="number"
+                    value={targetWeight}
+                    onChange={(e) => setTargetWeight(e.target.value)}
+                    placeholder="e.g., 140"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Height (inches)
+                  </label>
+                  <input
+                    type="number"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    placeholder="e.g., 68"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Active Days/Week
+                  </label>
+                  <input
+                    type="number"
+                    value={activeDays}
+                    onChange={(e) => setActiveDays(e.target.value)}
+                    placeholder="e.g., 3"
+                    min="0"
+                    max="7"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Fitness Challenges */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   What fitness challenges are you facing?
