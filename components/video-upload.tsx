@@ -312,6 +312,12 @@ export function VideoUpload() {
   return (
     <Card className="p-8 bg-card border-border">
       <div className="space-y-6">
+        {/* Upload Video Heading */}
+        <div className="text-center mb-4">
+          <h3 className="text-2xl font-semibold text-gray-900">Upload Video</h3>
+          <p className="text-sm text-gray-600 mt-1">Choose your analysis method</p>
+        </div>
+
         {/* Mode Selection */}
         <div className="flex justify-center gap-2 mb-6 flex-wrap">
           <Button
@@ -326,7 +332,7 @@ export function VideoUpload() {
             onClick={() => setActiveMode('mediapipe')}
             size="sm"
           >
-            🚀 Fast AI Analysis
+            Fast AI Analysis
           </Button>
           <Button
             variant={activeMode === 'gvi' ? 'default' : 'outline'}
@@ -334,13 +340,6 @@ export function VideoUpload() {
             size="sm"
           >
             Cloud AI (Slow)
-          </Button>
-          <Button
-            variant={activeMode === 'live' ? 'default' : 'outline'}
-            onClick={() => setActiveMode('live')}
-            size="sm"
-          >
-            Live Camera
           </Button>
           <Button
             variant={activeMode === 'pain' ? 'default' : 'outline'}
