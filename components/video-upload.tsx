@@ -56,6 +56,7 @@ export function VideoUpload() {
     if (file && file.type.startsWith("video/")) {
       setSelectedFile(file)
       setAnalysisResult(null) // Clear previous results
+      setSelectedExercise('auto') // Reset exercise selection
     } else {
       alert("Please select a valid video file")
     }
@@ -161,6 +162,7 @@ export function VideoUpload() {
         feedback: feedbackData.feedback,
       }))
       setSelectedFile(null)
+      setSelectedExercise('auto') // Reset exercise selection
 
     } catch (error: any) {
       console.error('Upload error:', error)
@@ -325,7 +327,7 @@ export function VideoUpload() {
             onClick={() => setActiveMode('upload')}
             size="sm"
           >
-            Basic Upload
+            Video Upload
           </Button>
           <Button
             variant={activeMode === 'mediapipe' ? 'default' : 'outline'}
@@ -339,7 +341,7 @@ export function VideoUpload() {
             onClick={() => setActiveMode('gvi')}
             size="sm"
           >
-            Cloud AI (Slow)
+            Cloud AI
           </Button>
           <Button
             variant={activeMode === 'pain' ? 'default' : 'outline'}
@@ -428,6 +430,28 @@ export function VideoUpload() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </Button>
+          </div>
+        )}
+
+        {/* Exercise Type Selection */}
+        {selectedFile && (
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <label className="block text-sm font-medium text-blue-900 mb-2">
+              🎯 Select Your Exercise (For Better Accuracy)
+            </label>
+            <select
+              value={selectedExercise}
+              onChange={(e) => setSelectedExercise(e.target.value)}
+              className="w-full p-2 border border-blue-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="auto">Auto-Detect Exercise</option>
+              <option value="squat">Squat (Tracks knee angles)</option>
+              <option value="deadlift">Deadlift (Tracks hip angles)</option>
+              <option value="push_up">Push-up (Tracks elbow angles)</option>
+            </select>
+            <p className="text-xs text-blue-700 mt-2">
+              💡 <strong>Tip:</strong> Selecting the correct exercise ensures accurate rep counting and form analysis!
+            </p>
           </div>
         )}
 
@@ -718,12 +742,11 @@ export function VideoUpload() {
                 />
               </svg>
               <div className="text-sm leading-relaxed">
-                <p className="font-medium text-green-900 mb-1">🎯 Good-GYM Algorithm (Proven)</p>
+                <p className="font-medium text-green-900 mb-1">🚀 Advanced AI Analysis</p>
                 <p className="text-green-800">
-                  <strong>State Machine:</strong> Tracks "up" vs "down" stages, counts transitions. 
-                  <strong>Timing Protection:</strong> 0.5s minimum between reps (no double-counting).
-                  <strong>Median Smoothing:</strong> Removes outliers before counting.
-                  <strong>Based on yo-WASSUP/Good-GYM:</strong> Proven open-source fitness tracker.
+                  Lightning-fast MediaPipe pose detection with AI-powered form analysis. 
+                  Get detailed rep counting, exercise identification, and personalized feedback 
+                  in seconds. Perfect for quick workout reviews and progress tracking.
                 </p>
               </div>
             </div>
