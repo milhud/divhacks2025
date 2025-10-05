@@ -10,6 +10,83 @@ interface LiveMediaPipeCameraProps {
   isProviderMode?: boolean
 }
 
+type RepStage = 'up' | 'down' | null
+
+interface AdaptiveThresholds {
+  down: number
+  up: number
+}
+
+class AdaptiveRepCounter {
+  private counter = 0
+  private stage: RepStage = null
+  private lastRepTimestamp = 0
+  private readonly minRepGapMs = 600
+
+  reset() {
+    this.counter = 0
+    this.stage = null
+    this.lastRepTimestamp = 0
+  }
+
+  prime(initialAngle: number, thresholds: AdaptiveThresholds) {
+    if (initialAngle > thresholds.up) {
+      this.stage = 'up'
+    } else if (initialAngle < thresholds.down) {
+      this.stage = 'down'
+    } else {
+      this.stage = null
+    }
+  }
+
+  update(angle: number, thresholds: AdaptiveThresholds, timestampMs: number) {
+    let counted = false
+    let blocked = false
+    let blockedReason: string | null = null
+    let stageChanged = false
+
+    if (this.stage === null) {
+      this.prime(angle, thresholds)
+      if (this.stage !== null) {
+        stageChanged = true
+      }
+    }
+
+    if (angle > thresholds.up) {
+      if (this.stage !== 'up') {
+        this.stage = 'up'
+        stageChanged = true
+      }
+    } else if (angle < thresholds.down) {
+      if (this.stage === 'up') {
+        const delta = timestampMs - this.lastRepTimestamp
+        if (this.lastRepTimestamp === 0 || delta > this.minRepGapMs) {
+          this.counter += 1
+          this.stage = 'down'
+          this.lastRepTimestamp = timestampMs
+          counted = true
+          stageChanged = true
+        } else {
+          blocked = true
+          blockedReason = 'too_fast'
+        }
+      } else if (this.stage !== 'down') {
+        this.stage = 'down'
+        stageChanged = true
+      }
+    }
+
+    return {
+      count: this.counter,
+      stage: this.stage,
+      counted,
+      blocked,
+      blockedReason,
+      stageChanged,
+    }
+  }
+}
+
 export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProviderMode = false }: LiveMediaPipeCameraProps) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -20,16 +97,19 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
   const [mediapipeLoaded, setMediapipeLoaded] = useState(false)
   
   // Rep counting state machine (Good-GYM approach)
-  const [repState, setRepState] = useState<'up' | 'down' | null>(null)
-  const [angleHistory, setAngleHistory] = useState<number[]>([])
-  const lastRepTimeRef = useRef(0)
+  const [repState, setRepState] = useState<RepStage>(null)
+  const angleHistoryRef = useRef<number[]>([])
   const [currentAngle, setCurrentAngle] = useState(0)
+  const repCounterRef = useRef(new AdaptiveRepCounter())
   
   // Calibration for adaptive thresholds
   const [isCalibrating, setIsCalibrating] = useState(true)
-  const [calibrationAngles, setCalibrationAngles] = useState<number[]>([])
-  const [adaptiveThresholds, setAdaptiveThresholds] = useState<{down: number, up: number} | null>(null)
+  const calibrationAnglesRef = useRef<number[]>([])
+  const [adaptiveThresholds, setAdaptiveThresholds] = useState<AdaptiveThresholds | null>(null)
+  const adaptiveThresholdsRef = useRef<AdaptiveThresholds | null>(null)
   const calibrationStartRef = useRef(0)
+  const [calibrationProgress, setCalibrationProgress] = useState(0)
+  const [statusMessage, setStatusMessage] = useState('Start camera to begin live coaching')
   
   // Voice feedback
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -41,6 +121,24 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
   const streamRef = useRef<MediaStream | null>(null)
   const poseRef = useRef<any>(null)
   const animationFrameRef = useRef<number | null>(null)
+  const isMountedRef = useRef(true)
+
+  const resetSession = () => {
+    if (!isMountedRef.current) return
+    angleHistoryRef.current = []
+    calibrationAnglesRef.current = []
+    adaptiveThresholdsRef.current = null
+    repCounterRef.current.reset()
+    calibrationStartRef.current = 0
+    setRepCount(0)
+    setRepState(null)
+    setFormScore(0)
+    setAnalysis(null)
+    setIsCalibrating(true)
+    setAdaptiveThresholds(null)
+    setCalibrationProgress(0)
+    setStatusMessage('Start camera to begin live coaching')
+  }
 
   // Load MediaPipe dynamically
   useEffect(() => {
@@ -73,6 +171,7 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
   const startCamera = async () => {
     try {
       setError(null)
+      resetSession()
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1280 },
@@ -119,8 +218,11 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
       poseRef.current = null
     }
     
-    setIsStreaming(false)
-    setIsAnalyzing(false)
+    if (isMountedRef.current) {
+      setIsStreaming(false)
+      setIsAnalyzing(false)
+    }
+    resetSession()
   }
 
   const initMediaPipe = async () => {
@@ -246,100 +348,99 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
     setCurrentAngle(Math.round(primaryAngle))
 
     // Update angle history with median filtering (Good-GYM approach)
-    const newHistory = [...angleHistory, primaryAngle].slice(-5)
-    setAngleHistory(newHistory)
-    
+    const history = angleHistoryRef.current
+    history.push(primaryAngle)
+    if (history.length > 5) history.shift()
+
     // Calculate smoothed angle with outlier removal
     let smoothAngle = primaryAngle
-    if (newHistory.length >= 3) {
-      const sortedAngles = [...newHistory].sort((a, b) => a - b)
+    if (history.length >= 3) {
+      const sortedAngles = [...history].sort((a, b) => a - b)
       const median = sortedAngles[Math.floor(sortedAngles.length / 2)]
-      const mean = newHistory.reduce((a, b) => a + b) / newHistory.length
-      const stdDev = Math.sqrt(newHistory.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / newHistory.length)
-      
+      const mean = history.reduce((a, b) => a + b, 0) / history.length
+      const stdDev = Math.sqrt(history.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / history.length)
+
       // Filter outliers (> 2 std dev from median)
-      const filtered = newHistory.filter(a => Math.abs(a - median) <= 2 * stdDev)
-      smoothAngle = filtered.length > 0 ? filtered.reduce((a, b) => a + b) / filtered.length : primaryAngle
+      const filtered = history.filter(a => Math.abs(a - median) <= 2 * stdDev)
+      smoothAngle = filtered.length > 0 ? filtered.reduce((a, b) => a + b, 0) / filtered.length : primaryAngle
     }
-    
+
     console.log(`📐 [ANGLES] Primary: ${Math.round(primaryAngle)}°, Smoothed: ${Math.round(smoothAngle)}°`)
 
-    // REP COUNTING with FIXED adaptive thresholds (declare variables first)
     let currentRepCount = repCount
-    let currentRepState = repState
-    
+    let currentRepState: RepStage = repState
+
     // CALIBRATION PHASE (Good-GYM approach: collect data first, then set thresholds)
     const now = Date.now()
-    
+
     if (isCalibrating) {
       if (calibrationStartRef.current === 0) {
         calibrationStartRef.current = now
-        console.log(`🎯 [CALIBRATION] Starting 3-second calibration... Move through your full range!`)
+        setStatusMessage('Calibrating... move through a full rep range')
+        console.log(`🎯 [CALIBRATION] Starting calibration window`)
       }
-      
+
       const calibrationTime = (now - calibrationStartRef.current) / 1000
-      setCalibrationAngles(prev => [...prev, smoothAngle])
-      
-      if (calibrationTime >= 3.0 && calibrationAngles.length >= 10) {
-        // Calculate adaptive thresholds from ALL collected data
-        const minAngle = Math.min(...calibrationAngles)
-        const maxAngle = Math.max(...calibrationAngles)
+      const anglesBuffer = calibrationAnglesRef.current
+      anglesBuffer.push(smoothAngle)
+      if (anglesBuffer.length > 400) anglesBuffer.shift()
+
+      const progress = Math.min(calibrationTime / 3.0, 1)
+      setCalibrationProgress(progress)
+
+      if (calibrationTime >= 3.0 && anglesBuffer.length >= 12) {
+        const minAngle = Math.min(...anglesBuffer)
+        const maxAngle = Math.max(...anglesBuffer)
         const range = maxAngle - minAngle
-        
+
         if (range > 20) {
           const downThreshold = minAngle + (range * 0.4)
           const upThreshold = minAngle + (range * 0.6)
-          
-          setAdaptiveThresholds({ down: downThreshold, up: upThreshold })
+          const thresholds = { down: downThreshold, up: upThreshold }
+
+          setAdaptiveThresholds(thresholds)
+          adaptiveThresholdsRef.current = thresholds
           setIsCalibrating(false)
-          
+          repCounterRef.current.reset()
+          repCounterRef.current.prime(smoothAngle, thresholds)
+          setCalibrationProgress(1)
+          setStatusMessage('Calibration complete — start your reps!')
+
           console.log(`✅ [CALIBRATION COMPLETE]`)
-          console.log(`   Range: ${Math.round(minAngle)}° - ${Math.round(maxAngle)}° (${Math.round(range)}°)`)
+          console.log(`   Range: ${Math.round(minAngle)}° - ${Math.round(maxAngle)}° (${Math.round(range)}°) `)
           console.log(`   Thresholds: DOWN < ${Math.round(downThreshold)}°, UP > ${Math.round(upThreshold)}°`)
-          console.log(`   Ready to count reps!`)
         } else {
-          console.log(`⏳ [CALIBRATION] Range: ${Math.round(range)}° - keep moving! (need >20°)`)
+          setStatusMessage('Need bigger range of motion for calibration (aim for >20°)')
+          console.log(`⏳ [CALIBRATION] Range: ${Math.round(range)}° - keep moving! (need >20°) `)
+          calibrationStartRef.current = now // extend calibration window
+          calibrationAnglesRef.current = []
+          setCalibrationProgress(0)
         }
-      } else {
-        console.log(`⏳ [CALIBRATION] ${calibrationTime.toFixed(1)}s / 3.0s (${calibrationAngles.length} samples)`)
       }
     }
-    
-    if (!isCalibrating && adaptiveThresholds && newHistory.length >= 3) {
-      const { down: downThreshold, up: upThreshold } = adaptiveThresholds
-      const timeSinceLastRep = (now - lastRepTimeRef.current) / 1000
 
-      console.log(`[COUNT] Angle: ${Math.round(smoothAngle)}°, State: ${repState}, Down<${Math.round(downThreshold)}°, Up>${Math.round(upThreshold)}°`)
+    const thresholds = adaptiveThresholdsRef.current
+    if (!isCalibrating && thresholds) {
+      const update = repCounterRef.current.update(smoothAngle, thresholds, now)
+      currentRepState = update.stage
+      currentRepCount = update.count
 
-      // Good-GYM state machine with voice feedback
-      if (smoothAngle > upThreshold) {
-        if (repState !== 'up') {
-          currentRepState = 'up'
-          setRepState('up')
-          console.log(`⬆️ [STATE] UP (angle: ${Math.round(smoothAngle)}° > ${Math.round(upThreshold)}°)`)
-        }
-      } else if (smoothAngle < downThreshold) {
-        if (repState === 'up' && timeSinceLastRep > 0.5) {
-          // REP COUNTED!
-          currentRepState = 'down'
-          currentRepCount = repCount + 1
-          setRepState('down')
-          setRepCount(currentRepCount)
-          lastRepTimeRef.current = now
-          console.log(`🎉 [REP] #${currentRepCount} at ${Math.round(smoothAngle)}° < ${Math.round(downThreshold)}° (gap: ${timeSinceLastRep.toFixed(1)}s)`)
-          
-          // Voice feedback for rep
-          speakFeedback(`${currentRepCount}`, 'high')
-        } else if (repState === 'up') {
-          console.log(`⏸️ [BLOCKED] Too soon! ${timeSinceLastRep.toFixed(1)}s < 0.5s`)
-        } else {
-          if (repState !== 'down') {
-            currentRepState = 'down'
-            setRepState('down')
-            console.log(`⬇️ [STATE] DOWN (angle: ${Math.round(smoothAngle)}° < ${Math.round(downThreshold)}°)`)
-          }
-        }
+      if (update.stageChanged) {
+        setRepState(update.stage)
       }
+
+      if (update.counted && update.count !== repCount) {
+        setRepCount(update.count)
+        speakFeedback(`${update.count}`, 'high')
+        setStatusMessage(`Rep ${update.count} captured!`)
+      }
+
+      if (update.blocked && update.blockedReason === 'too_fast') {
+        setStatusMessage('Slow down between reps for accurate counting')
+        console.log(`⏸️ [BLOCKED] Rep discarded: too fast between transitions`)
+      }
+
+      console.log(`[COUNT] Angle: ${Math.round(smoothAngle)}°, Stage: ${update.stage}, Reps: ${update.count}`)
     }
 
     // Form score
@@ -615,7 +716,12 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
   }
 
   useEffect(() => {
+    resetSession()
+  }, [exerciseType])
+
+  useEffect(() => {
     return () => {
+      isMountedRef.current = false
       stopCamera()
       window.speechSynthesis.cancel()
     }
@@ -664,6 +770,26 @@ export function LiveMediaPipeCamera({ onAnalysisComplete, exerciseType, isProvid
             {error}
           </div>
         )}
+
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-sm text-gray-700">
+            <span className="font-medium">{statusMessage}</span>
+            {isStreaming && isCalibrating && (
+              <span>{Math.round(calibrationProgress * 100)}%</span>
+            )}
+            {isStreaming && !isCalibrating && adaptiveThresholds && (
+              <span className="text-gray-500">Down {Math.round(adaptiveThresholds.down)}° · Up {Math.round(adaptiveThresholds.up)}°</span>
+            )}
+          </div>
+          {isStreaming && isCalibrating && (
+            <div className="mt-2 h-2 bg-gray-200 rounded">
+              <div
+                className="h-2 rounded bg-blue-500 transition-all"
+                style={{ width: `${Math.min(100, Math.round(calibrationProgress * 100))}%` }}
+              />
+            </div>
+          )}
+        </div>
 
         <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ minHeight: '400px' }}>
           <video

@@ -77,6 +77,7 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
   const [formScore, setFormScore] = useState(0)
   const [mediapipeLoaded, setMediapipeLoaded] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState(exerciseType || 'squat')
+  const selectedExerciseRef = useRef(exerciseType || 'squat') // Ref to avoid closure issues
   
   // AI Analysis state
   // Removed AI analysis state - using simplified detection
@@ -105,6 +106,9 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const lastVoiceFeedbackRef = useRef(0)
   const lastVoiceMessageRef = useRef('')
+  
+  // Visibility warning
+  const [visibilityWarning, setVisibilityWarning] = useState<string | null>(null)
   
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -143,6 +147,18 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
   const startCamera = async () => {
     try {
       setError(null)
+      
+      // Reset session data when starting
+      setRepCount(0)
+      setRepState(null)
+      setFormScore(0)
+      setAnalysis(null)
+      setCurrentAngle(0)
+      setIsCalibrating(true)
+      setCalibrationAngles([])
+      setAdaptiveThresholds(null)
+      setVisibilityWarning(null)
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1280 },
@@ -191,6 +207,17 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     
     setIsStreaming(false)
     setIsAnalyzing(false)
+    
+    // Reset session data
+    setRepCount(0)
+    setRepState(null)
+    setFormScore(0)
+    setAnalysis(null)
+    setCurrentAngle(0)
+    setIsCalibrating(true)
+    setCalibrationAngles([])
+    setAdaptiveThresholds(null)
+    setVisibilityWarning(null)
   }
 
   const initMediaPipe = async () => {
@@ -260,6 +287,48 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     return angle
   }
 
+  // Helper: Check if required landmarks are visible for the exercise
+  const areRequiredLandmarksVisible = (landmarks: any, exerciseName: string, minVisibility = 0.5): boolean => {
+    const checkLandmarks = (indices: number[]): boolean => {
+      return indices.every(idx => {
+        const landmark = landmarks[idx]
+        return landmark && landmark.visibility >= minVisibility
+      })
+    }
+
+    switch (exerciseName) {
+      case 'squat':
+      case 'lunge':
+        // Need hips, knees, and ankles visible
+        return checkLandmarks([23, 24, 25, 26, 27, 28]) // left/right hip, knee, ankle
+      
+      case 'bicep_curl':
+        // Need right shoulder, elbow, wrist visible
+        return checkLandmarks([12, 14, 16]) // right shoulder, elbow, wrist
+      
+      case 'pushup':
+      case 'shoulder_press':
+        // Need both shoulders, elbows, wrists visible
+        return checkLandmarks([11, 12, 13, 14, 15, 16]) // shoulders, elbows, wrists
+      
+      case 'plank':
+        // Need shoulders, hips visible for alignment
+        return checkLandmarks([11, 12, 23, 24]) // shoulders and hips
+      
+      case 'knee_flexion':
+        // Need hips, knees, ankles
+        return checkLandmarks([23, 24, 25, 26, 27, 28])
+      
+      case 'shoulder_abduction':
+        // Need shoulders, elbows
+        return checkLandmarks([11, 12, 13, 14])
+      
+      default:
+        // For unknown exercises, require basic visibility
+        return checkLandmarks([11, 12, 23, 24]) // shoulders and hips
+    }
+  }
+
   // Simplified - no AI analysis for now
   const sendToAIAnalysis = async (frame: HTMLVideoElement) => {
     // Disabled AI analysis to prevent errors
@@ -270,6 +339,45 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
     if (!results.poseLandmarks) return
 
     const landmarks = results.poseLandmarks
+    const exerciseName = selectedExerciseRef.current.toLowerCase() // Use ref for latest value
+    
+    // Check if required body parts are visible for this exercise
+    const landmarksVisible = areRequiredLandmarksVisible(landmarks, exerciseName)
+    
+    if (!landmarksVisible) {
+      console.log(`⚠️ [VISIBILITY] Required body parts not visible for ${selectedExerciseRef.current}`)
+      
+      // Set warning message based on exercise type
+      let warningMessage = ''
+      switch (exerciseName) {
+        case 'squat':
+        case 'lunge':
+          warningMessage = '⚠️ Position camera to show your full legs (hips, knees, ankles)'
+          break
+        case 'bicep_curl':
+          warningMessage = '⚠️ Position camera to show your right arm (shoulder, elbow, wrist)'
+          break
+        case 'pushup':
+        case 'shoulder_press':
+          warningMessage = '⚠️ Position camera to show your full upper body (both arms)'
+          break
+        case 'plank':
+          warningMessage = '⚠️ Position camera to show your shoulders and hips'
+          break
+        default:
+          warningMessage = '⚠️ Position camera to show required body parts for this exercise'
+      }
+      
+      setVisibilityWarning(warningMessage)
+      
+      // Still draw skeleton so user can see what's visible
+      drawSkeleton(landmarks)
+      return // Don't process angles or count reps if body parts aren't visible
+    }
+    
+    // Clear warning when landmarks are visible
+    setVisibilityWarning(null)
+    
     drawSkeleton(landmarks)
 
     // Calculate ALL joint angles
@@ -314,9 +422,8 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
 
     // Pick primary angle based on selected exercise
     let primaryAngle = 160
-    const exerciseName = selectedExercise.toLowerCase()
     
-    console.log(`🏋️ [EXERCISE] Selected: ${selectedExercise}, ExerciseName: ${exerciseName}`)
+    console.log(`🏋️ [EXERCISE] Selected: ${selectedExerciseRef.current}, ExerciseName: ${exerciseName}`)
     
     if (exerciseName === 'squat') {
       // For squats, use average knee angle
@@ -1170,13 +1277,17 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
                 onClick={() => {
                   console.log('🔄 [EXERCISE] Clicking Squat button...')
                   setSelectedExercise('squat')
-                  // Reset calibration when switching exercises
+                  selectedExerciseRef.current = 'squat' // Update ref immediately
+                  // Reset ALL session data when switching exercises
+                  setRepCount(0)
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
                   setRepState(null)
                   lastRepTimeRef.current = 0
-                  console.log('✅ [EXERCISE] Switched to Squat - resetting calibration')
+                  setAdaptiveThresholds(null)
+                  setVisibilityWarning(null)
+                  console.log('✅ [EXERCISE] Switched to Squat - full reset')
                 }}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   selectedExercise === 'squat'
@@ -1190,14 +1301,17 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
                 onClick={() => {
                   console.log('🔄 [EXERCISE] Clicking Bicep Curl button...')
                   setSelectedExercise('bicep_curl')
-                  // Reset calibration when switching exercises
+                  selectedExerciseRef.current = 'bicep_curl' // Update ref immediately
+                  // Reset ALL session data when switching exercises
+                  setRepCount(0)
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
                   setRepState(null)
                   lastRepTimeRef.current = 0
                   setAdaptiveThresholds(null)
-                  console.log('✅ [EXERCISE] Switched to Bicep Curl - resetting calibration')
+                  setVisibilityWarning(null)
+                  console.log('✅ [EXERCISE] Switched to Bicep Curl - full reset')
                 }}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   selectedExercise === 'bicep_curl'
@@ -1211,12 +1325,17 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
                 onClick={() => {
                   console.log('🔄 [EXERCISE] Clicking Pushup button...')
                   setSelectedExercise('pushup')
+                  selectedExerciseRef.current = 'pushup' // Update ref immediately
+                  // Reset ALL session data when switching exercises
+                  setRepCount(0)
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
                   setRepState(null)
                   lastRepTimeRef.current = 0
-                  console.log('✅ [EXERCISE] Switched to Pushup - resetting calibration')
+                  setAdaptiveThresholds(null)
+                  setVisibilityWarning(null)
+                  console.log('✅ [EXERCISE] Switched to Pushup - full reset')
                 }}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   selectedExercise === 'pushup'
@@ -1230,12 +1349,17 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
                 onClick={() => {
                   console.log('🔄 [EXERCISE] Clicking Plank button...')
                   setSelectedExercise('plank')
+                  selectedExerciseRef.current = 'plank' // Update ref immediately
+                  // Reset ALL session data when switching exercises
+                  setRepCount(0)
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
                   setRepState(null)
                   lastRepTimeRef.current = 0
-                  console.log('✅ [EXERCISE] Switched to Plank - resetting calibration')
+                  setAdaptiveThresholds(null)
+                  setVisibilityWarning(null)
+                  console.log('✅ [EXERCISE] Switched to Plank - full reset')
                 }}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   selectedExercise === 'plank'
@@ -1249,12 +1373,17 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
                 onClick={() => {
                   console.log('🔄 [EXERCISE] Clicking Lunge button...')
                   setSelectedExercise('lunge')
+                  selectedExerciseRef.current = 'lunge' // Update ref immediately
+                  // Reset ALL session data when switching exercises
+                  setRepCount(0)
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
                   setRepState(null)
                   lastRepTimeRef.current = 0
-                  console.log('✅ [EXERCISE] Switched to Lunge - resetting calibration')
+                  setAdaptiveThresholds(null)
+                  setVisibilityWarning(null)
+                  console.log('✅ [EXERCISE] Switched to Lunge - full reset')
                 }}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   selectedExercise === 'lunge'
@@ -1268,12 +1397,17 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
                 onClick={() => {
                   console.log('🔄 [EXERCISE] Clicking Shoulder Press button...')
                   setSelectedExercise('shoulder_press')
+                  selectedExerciseRef.current = 'shoulder_press' // Update ref immediately
+                  // Reset ALL session data when switching exercises
+                  setRepCount(0)
                   setIsCalibrating(true)
                   setCalibrationAngles([])
                   calibrationStartRef.current = 0
                   setRepState(null)
                   lastRepTimeRef.current = 0
-                  console.log('✅ [EXERCISE] Switched to Shoulder Press - resetting calibration')
+                  setAdaptiveThresholds(null)
+                  setVisibilityWarning(null)
+                  console.log('✅ [EXERCISE] Switched to Shoulder Press - full reset')
                 }}
                 className={`px-4 py-2 rounded-lg border transition-colors ${
                   selectedExercise === 'shoulder_press'
@@ -1321,6 +1455,20 @@ export function AILiveCamera({ onAnalysisComplete, exerciseType, isProviderMode 
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}
+          </div>
+        )}
+
+        {/* Visibility Warning */}
+        {visibilityWarning && isStreaming && (
+          <div className="mb-4 p-4 bg-yellow-100 border-2 border-yellow-500 text-yellow-900 rounded-lg flex items-start gap-3 animate-pulse">
+            <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="font-semibold text-sm">Body Parts Not Visible</p>
+              <p className="text-sm">{visibilityWarning}</p>
+              <p className="text-xs mt-1 text-yellow-700">Rep counting is paused until required body parts are in frame</p>
+            </div>
           </div>
         )}
 

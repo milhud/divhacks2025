@@ -17,39 +17,60 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate AI feedback based on pose data
+    const confidencePercent = poseData.confidence ?? (poseData.overall_confidence ? Math.round(Number(poseData.overall_confidence) * 100) : null)
+    const averageVelocity = poseData.average_velocity ?? poseData.avg_velocity ?? null
+    const maxVelocity = poseData.max_velocity ?? null
+    const tempoRating = poseData.tempo_rating ?? null
+    const rangeOfMotion = poseData.range_of_motion ?? null
+    const stabilityScore = poseData.stability_score ?? null
+    const durationSeconds = poseData.duration_seconds ?? poseData.duration ?? null
+    const detectedCompensations = Array.isArray(poseData.movement_compensations) ? poseData.movement_compensations : []
+    const compensationSummary = detectedCompensations
+      .slice(0, 4)
+      .map((item: any) => `${item.joint || 'joint'}: ${item.compensation_type || 'compensation'} (${item.severity || 'n/a'})`)
+      .join('\n- ')
+    const painSummary = Array.isArray(poseData.pain_indicators) && poseData.pain_indicators.length > 0
+      ? poseData.pain_indicators.map((item: any) => `${item.area || 'area'} intensity ${item.intensity ?? 'n/a'} triggered by ${item.movement_trigger || 'movement'}`).join('\n- ')
+      : 'None reported'
+
     const prompt = `
-You are an expert fitness coach analyzing a workout session. Based on the following pose analysis data, provide detailed feedback:
+You are an expert fitness coach analyzing a recorded session. Review the metrics and deliver specific, biomechanically sound feedback.
 
-Workout Type: ${workoutType || 'General Workout'}
-Form Score: ${poseData.form_score || 'N/A'}
-Rep Count: ${poseData.rep_count || 'N/A'}
-Overall Confidence: ${poseData.overall_confidence || 'N/A'}
+Workout Type: ${poseData.exercise_type ? poseData.exercise_type.replace(/_/g, ' ') : (workoutType || 'General Workout')}
+Form Score: ${poseData.form_score ?? poseData.movement_quality_score ?? 'N/A'}
+Rep Count: ${poseData.rep_count ?? 'N/A'}
+Confidence: ${confidencePercent !== null && confidencePercent !== undefined ? confidencePercent + '%' : 'N/A'}
+Duration: ${durationSeconds ? `${Math.round(durationSeconds)} sec` : 'N/A'}
+Tempo: ${tempoRating ?? 'N/A'}
+Average Velocity: ${averageVelocity ? `${Math.round(averageVelocity)}°/s` : 'N/A'}
+Max Velocity: ${maxVelocity ? `${Math.round(maxVelocity)}°/s` : 'N/A'}
+Range of Motion: ${rangeOfMotion !== null && rangeOfMotion !== undefined ? `${rangeOfMotion}%` : 'N/A'}
+Stability Score: ${stabilityScore ?? 'N/A'}
+Movement Compensations:\n- ${compensationSummary || 'None detected'}
+Pain Indicators:\n- ${painSummary}
 
-Keypoints Data: ${JSON.stringify(poseData.keypoints, null, 2)}
+Keypoints (for reference): ${poseData.keypoints ? JSON.stringify(poseData.keypoints).slice(0, 2000) : 'Not available'}
 
-Please provide detailed feedback using markdown formatting:
+Create feedback in markdown with these sections:
 
 ## Overall Assessment
-- Brief summary of the workout performance
+- Brief summary referencing the form score, tempo, and confidence.
 
 ## Areas for Improvement
-- Specific form issues to address
-- Use bullet points for clarity
+- Bullet list of technique fixes tied to the detected compensations, range of motion, or velocity data.
+- Mention pacing if average velocity or tempo is problematic.
 
 ## Positive Aspects
-- What you did well
-- Strengths to maintain
+- Bullet list of strengths anchored to the metrics (e.g., consistency, depth, tempo).
 
 ## Recommendations
-- Specific actionable advice
-- Focus on technique improvements
+- 2-3 actionable drills, cues, or setup tips personalized to this exercise type.
+- Include volume cue (reps/sets) when relevant.
 
 ## Next Steps
-- Motivational encouragement
-- Suggested focus areas for next workout
+- Encouraging close-out with what to focus on in the next session.
 
-Use **bold** for emphasis, bullet points for lists, and keep the tone encouraging and constructive.
+Keep the tone supportive, cite the numbers you reference, and avoid generic advice.
     `.trim()
 
     const completion = await openai.chat.completions.create({

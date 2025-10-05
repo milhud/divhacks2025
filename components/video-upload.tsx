@@ -9,6 +9,39 @@ import { LiveCameraFeed } from "./live-camera-feed"
 import { LiveMediaPipeCamera } from "./live-mediapipe-camera"
 import { PainInput } from "./pain-input"
 
+const normalizeAnalysisResult = (raw: any = {}) => {
+  const formScore = raw.form_score ?? raw.movement_quality_score ?? 0
+  const repCount = raw.rep_count ?? raw.reps ?? 0
+  const durationSeconds = raw.duration_seconds ?? raw.duration ?? 0
+  const confidence = raw.confidence ?? (raw.overall_confidence ? Math.round(raw.overall_confidence * 100) : null)
+  const averageVelocity = raw.average_velocity ?? raw.avg_velocity ?? null
+  const maxVelocity = raw.max_velocity ?? raw.peak_velocity ?? null
+  const tempo = raw.tempo_rating ?? raw.tempo ?? null
+  const rangeOfMotion = raw.range_of_motion ?? null
+  const stability = raw.stability_score ?? null
+  const movementCompensations = raw.movement_compensations ?? raw.compensations ?? []
+  const painIndicators = raw.pain_indicators ?? []
+  const exerciseType = raw.exercise_type ?? raw.exerciseType ?? 'general_exercise'
+
+  return {
+    ...raw,
+    exercise_type: exerciseType,
+    form_score: formScore,
+    movement_quality_score: formScore,
+    rep_count: repCount,
+    duration_seconds: durationSeconds,
+    confidence,
+    average_velocity: averageVelocity,
+    avg_velocity: averageVelocity,
+    max_velocity: maxVelocity,
+    tempo_rating: tempo,
+    range_of_motion: rangeOfMotion,
+    stability_score: stability,
+    movement_compensations: movementCompensations,
+    pain_indicators: painIndicators,
+  }
+}
+
 export function VideoUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -82,6 +115,8 @@ export function VideoUpload() {
 
       const uploadData = await uploadResponse.json()
 
+      const exerciseForAnalysis = selectedExercise === 'auto' ? undefined : selectedExercise
+
       // Start pose analysis
       const analysisResponse = await fetch('/api/pose/analyze', {
         method: 'POST',
@@ -91,6 +126,7 @@ export function VideoUpload() {
         body: JSON.stringify({
           sessionId: uploadData.sessionId,
           videoUrl: uploadData.videoUrl,
+          exerciseType: exerciseForAnalysis,
         }),
       })
 
@@ -99,6 +135,7 @@ export function VideoUpload() {
       }
 
       const analysisData = await analysisResponse.json()
+      const normalizedAnalysis = normalizeAnalysisResult(analysisData.analysis)
 
       // Generate AI feedback
       const feedbackResponse = await fetch('/api/feedback/generate', {
@@ -108,8 +145,8 @@ export function VideoUpload() {
         },
         body: JSON.stringify({
           sessionId: uploadData.sessionId,
-          poseData: analysisData.analysis,
-          workoutType: 'General Workout',
+          poseData: normalizedAnalysis,
+          workoutType: exerciseForAnalysis ? exerciseForAnalysis.replace('_', ' ') : 'General Workout',
         }),
       })
 
@@ -119,10 +156,10 @@ export function VideoUpload() {
 
       const feedbackData = await feedbackResponse.json()
 
-      setAnalysisResult({
-        ...analysisData.analysis,
-        feedback: feedbackData.feedback
-      })
+      setAnalysisResult(normalizeAnalysisResult({
+        ...normalizedAnalysis,
+        feedback: feedbackData.feedback,
+      }))
       setSelectedFile(null)
 
     } catch (error: any) {
@@ -168,14 +205,10 @@ export function VideoUpload() {
       const data = await response.json()
 
       // Handle both successful analysis and fallback results
-      setAnalysisResult({
-        exercise_type: data.analysis?.exercise_type || 'general_exercise',
-        rep_count: data.analysis?.rep_count || 0,
-        form_score: data.analysis?.form_score || 75,
-        confidence: data.analysis?.confidence || 50,
-        duration: data.analysis?.duration || 30,
+      setAnalysisResult(normalizeAnalysisResult({
+        ...data.analysis,
         feedback: data.analysis?.feedback || "Analysis completed. Your video has been processed using Google Video Intelligence and AI feedback has been generated.",
-      })
+      }))
       setSelectedFile(null)
 
       // Show success message
@@ -229,17 +262,11 @@ export function VideoUpload() {
       const data = await response.json()
       console.log('MediaPipe response:', data) // Debug log
 
-      // Handle MediaPipe results
-      const analysisData = {
-        exercise_type: data.analysis?.exercise_type || 'general_exercise',
-        rep_count: data.analysis?.rep_count || 0,
-        form_score: data.analysis?.form_score || 0,
-        confidence: data.analysis?.confidence || 0,
-        duration: data.analysis?.duration || 0,
-        analysis_method: data.analysis?.analysis_method || 'mediapipe',
+      const analysisData = normalizeAnalysisResult({
+        ...data.analysis,
         feedback: data.analysis?.feedback || "MediaPipe analysis completed successfully!",
-      }
-      
+      })
+
       console.log('Setting analysis result:', analysisData) // Debug log
       setAnalysisResult(analysisData)
       setSelectedFile(null)
@@ -279,7 +306,7 @@ export function VideoUpload() {
 
   const handleLiveAnalysisComplete = (analysis: any) => {
     console.log('Live analysis completed:', analysis)
-    setAnalysisResult(analysis)
+    setAnalysisResult(normalizeAnalysisResult(analysis))
   }
 
   return (
@@ -448,7 +475,9 @@ export function VideoUpload() {
               <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <h3 className="text-lg font-semibold text-green-900">Analysis Complete!</h3>
+              <h3 className="text-lg font-semibold text-green-900">
+                Analysis Complete{analysisResult.exercise_type ? `: ${analysisResult.exercise_type.replace('_', ' ')}` : '!'}
+              </h3>
             </div>
 
             {/* Quality Warnings */}
@@ -492,9 +521,9 @@ export function VideoUpload() {
                   <div className="text-xs text-purple-700">Tempo</div>
                 </div>
               )}
-              {analysisResult.avg_velocity && (
+              {(analysisResult.average_velocity || analysisResult.avg_velocity) && (
                 <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                  <div className="text-xl font-bold text-orange-600">{analysisResult.avg_velocity}°/s</div>
+                  <div className="text-xl font-bold text-orange-600">{analysisResult.average_velocity || analysisResult.avg_velocity}°/s</div>
                   <div className="text-xs text-orange-700">Velocity</div>
                 </div>
               )}
@@ -880,14 +909,30 @@ export function VideoUpload() {
                 <div className="text-2xl font-bold text-green-600">{analysisResult.rep_count || 0}</div>
                 <div className="text-sm text-green-700">Reps Counted</div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-red-600">{analysisResult.pain_level || 0}/10</div>
-                <div className="text-sm text-red-700">Pain Level</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{analysisResult.range_of_motion || 0}%</div>
-                <div className="text-sm text-blue-700">Range of Motion</div>
-              </div>
+              {analysisResult.pain_level !== undefined && (
+                <div className="text-center p-3 bg-white rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">{analysisResult.pain_level || 0}/10</div>
+                  <div className="text-sm text-red-700">Pain Level</div>
+                </div>
+              )}
+              {(analysisResult.range_of_motion !== undefined && analysisResult.range_of_motion !== null) && (
+                <div className="text-center p-3 bg-white rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{analysisResult.range_of_motion || 0}%</div>
+                  <div className="text-sm text-blue-700">Range of Motion</div>
+                </div>
+              )}
+              {(analysisResult.average_velocity || analysisResult.avg_velocity) && (
+                <div className="text-center p-3 bg-white rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{analysisResult.average_velocity || analysisResult.avg_velocity}°/s</div>
+                  <div className="text-sm text-purple-700">Average Velocity</div>
+                </div>
+              )}
+              {analysisResult.tempo_rating && (
+                <div className="text-center p-3 bg-white rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600 capitalize">{analysisResult.tempo_rating}</div>
+                  <div className="text-sm text-orange-700">Tempo</div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -897,11 +942,11 @@ export function VideoUpload() {
               </div>
             </div>
 
-            {analysisResult.compensations && analysisResult.compensations.length > 0 && (
+            {analysisResult.movement_compensations && analysisResult.movement_compensations.length > 0 && (
               <div className="mt-4">
                 <h4 className="font-medium text-red-900 mb-2">Movement Compensations Detected:</h4>
                 <ul className="text-red-800 text-sm">
-                  {analysisResult.compensations.map((comp: any, index: number) => (
+                  {analysisResult.movement_compensations.map((comp: any, index: number) => (
                     <li key={index}>• {comp.joint}: {comp.compensation_type} ({comp.severity})</li>
                   ))}
                 </ul>

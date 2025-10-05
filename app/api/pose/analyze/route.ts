@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, videoUrl } = await request.json()
+    const { sessionId, videoUrl, exerciseType } = await request.json()
 
     if (!sessionId || !videoUrl) {
       return NextResponse.json(
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         videoUrl,
-        sessionId
+        sessionId,
+        exerciseType,
       })
     })
 
@@ -36,15 +37,15 @@ export async function POST(request: NextRequest) {
       .from('workout_sessions')
       .update({
         pose_data: analysis,
-        form_score: analysis.movement_quality_score,
-        rep_count: analysis.rep_count,
-        duration: Math.round(pythonResult.video_info?.duration / 60) || 0, // Convert to minutes
-        pain_level: analysis.pain_level,
-        compensation_detected: analysis.compensation_detected,
-        range_of_motion: analysis.range_of_motion,
-        stability_score: analysis.stability_score,
-        movement_compensations: analysis.movement_compensations,
-        pain_indicators: analysis.pain_indicators,
+        form_score: analysis.form_score ?? analysis.movement_quality_score,
+        rep_count: analysis.rep_count ?? null,
+        duration: Math.round((analysis.duration_seconds || pythonResult.video_info?.duration || 0) / 60),
+        pain_level: analysis.pain_level ?? null,
+        compensation_detected: Array.isArray(analysis.movement_compensations) && analysis.movement_compensations.length > 0,
+        range_of_motion: analysis.range_of_motion ?? null,
+        stability_score: analysis.stability_score ?? null,
+        movement_compensations: analysis.movement_compensations ?? [],
+        pain_indicators: analysis.pain_indicators ?? [],
       })
       .eq('id', sessionId)
 

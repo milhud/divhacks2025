@@ -1,18 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
+import { randomUUID } from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('video') as File
     const userId = formData.get('userId') as string
-    const workoutId = formData.get('workoutId') as string
+    const workoutIdRaw = formData.get('workoutId') as string | null
 
-    if (!file || !userId || !workoutId) {
+    if (!file || !userId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
+    }
+
+    let workoutId = workoutIdRaw?.trim()
+    const defaultWorkoutId = process.env.SUPABASE_DEFAULT_WORKOUT_ID?.trim()
+
+    if (!workoutId || workoutId === 'temp-workout-id') {
+      if (defaultWorkoutId) {
+        workoutId = defaultWorkoutId
+      } else {
+        const adHocWorkoutId = await createAdHocWorkout()
+        if (!adHocWorkoutId) {
+          return NextResponse.json(
+            { error: 'Unable to create placeholder workout for session' },
+            { status: 500 }
+          )
+        }
+        workoutId = adHocWorkoutId
+      }
     }
 
     // Validate file type
@@ -38,7 +57,7 @@ export async function POST(request: NextRequest) {
     const fileName = `${userId}/${workoutId}/${Date.now()}.${fileExt}`
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('workout-videos')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -47,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       return NextResponse.json(
-        { error: 'Failed to upload video' },
+        { error: `Failed to upload video: ${uploadError.message}` },
         { status: 500 }
       )
     }
@@ -71,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     if (sessionError) {
       return NextResponse.json(
-        { error: 'Failed to create session record' },
+        { error: `Failed to create session record: ${sessionError.message}` },
         { status: 500 }
       )
     }
@@ -88,4 +107,42 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+async function createAdHocWorkout() {
+  const workoutId = randomUUID()
+  const { error } = await supabaseAdmin
+    .from('workouts')
+    .insert({
+      id: workoutId,
+      title: 'Ad-hoc Session',
+      description: 'Uploaded workout session',
+      category: 'General',
+      difficulty: 'Beginner',
+      duration: null,
+      tags: ['upload'],
+      exercises: [],
+      image_url: null,
+      youtube_url: null,
+      video_id: null,
+    })
+
+  if (error) {
+    console.error('Failed to create ad-hoc workout:', error)
+
+    const { data: existingWorkout } = await supabaseAdmin
+      .from('workouts')
+      .select('id')
+      .limit(1)
+      .maybeSingle()
+
+    if (existingWorkout?.id) {
+      console.warn('Using existing workout as fallback for session upload:', existingWorkout.id)
+      return existingWorkout.id
+    }
+
+    return null
+  }
+
+  return workoutId
 }
